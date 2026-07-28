@@ -336,6 +336,16 @@ async function seedDefaultRotations(client, practitionerId, program, specialty, 
         { name: 'Thực hành lâm sàng chuyên khoa Y học cổ truyền – Phục hồi chức năng (01 tuần)', duration: '1 tuần' },
         { name: 'Thực hành lâm sàng chuyên khoa Răng hàm mặt (01 tuần)', duration: '1 tuần' }
       ];
+    } else if (specialty === 'Y sĩ Y học cổ truyền') {
+      rotations = [
+        { name: 'Thực hành lâm sàng chuyên khoa Y học cổ truyền – Phục hồi chức năng (04 tháng)', duration: '16 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Hồi sức cấp cứu (03 tháng)', duration: '12 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Nội (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Ngoại (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Tai mũi họng (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Mắt (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Răng hàm mặt (01 tuần)', duration: '1 tuần' }
+      ];
     } else if (['Điều dưỡng', 'Hộ sinh', 'Kỹ thuật y'].includes(specialty)) {
       rotations = [
         { name: 'Thực hành Chuyên môn Chức danh', duration: '5 tháng' },
