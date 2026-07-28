@@ -311,6 +311,9 @@ const Templates = {
             <div class="signer-space" style="height: 60px;"></div>
             <div class="signer-name">${practitioner.name}</div>
           </div>
+        </div>
+      </div>
+    `;
   },
 
   // Phiếu nhận xét quá trình thực hành khám bệnh, chữa bệnh
