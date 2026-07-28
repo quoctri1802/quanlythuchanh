@@ -19,6 +19,79 @@ app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+async function seedSupervisors(client) {
+  const supervisorList = [
+    // I. Nội khoa
+    { name: 'Nguyễn Thị Ly Na', license_number: '006946/ĐNA-CCHN', license_date: '2017-08-21', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'nguyenthilyna' },
+    { name: 'Lê Việt Trung', license_number: '006633/ĐNA-CCHN', license_date: '2017-04-12', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'leviettrung' },
+    { name: 'Nguyễn Thị Châu Loan', license_number: '007345/ĐNA-CCHN', license_date: '2018-03-21', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'nguyenthichauloan' },
+    { name: 'Trần Lê Nhật Ly', license_number: '007337/ĐNA-CCHN', license_date: '2018-03-21', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'tranlenhatly' },
+    { name: 'Nguyễn Văn Linh', license_number: '007973/ĐNA-CCHN', license_date: '2019-04-11', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'nguyenvanlinh' },
+    { name: 'Trần Thị Thu Thương', license_number: '007983/ĐNA-CCHN', license_date: '2019-04-16', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'tranthithuthuong' },
+    { name: 'Trần Thị Thanh Nga', license_number: '005910/ĐNA-CCHN', license_date: '2016-02-18', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'tranthithanhnga' },
+    { name: 'Chu Lan Huệ', license_number: '008000/ĐNA-CCHN', license_date: '2019-04-18', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'chulanhue' },
+    { name: 'Trần Duy Hòa', license_number: '008633/ĐNA-CCHN', license_date: '2020-02-24', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'tranduyhoa' },
+    { name: 'Trương Đạt Hướng', license_number: '008640/ĐNA-CCHN', license_date: '2020-02-24', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'truongdathuong' },
+    { name: 'Đoàn Thị Ngọc Phước', license_number: '008826/ĐNA-CCHN', license_date: '2020-06-22', specialty: 'Nội khoa', department: 'Khoa Nội tổng hợp', username: 'doanthingocphuoc' },
+
+    // II. Ngoại khoa
+    { name: 'Trần Hữu Lâm', license_number: '000534/ĐNA-CCHN', license_date: '2012-09-07', specialty: 'Ngoại khoa', department: 'Khoa Ngoại chấn thương', username: 'tranhuulam' },
+    { name: 'Phạm Tuấn Anh', license_number: '005988/ĐNA-CCHN', license_date: '2016-04-20', specialty: 'Ngoại khoa', department: 'Khoa Ngoại chấn thương', username: 'phamtuananh' },
+    { name: 'Phan Thế Công', license_number: '005985/ĐNA-CCHN', license_date: '2018-03-21', specialty: 'Ngoại khoa', department: 'Khoa Ngoại chấn thương', username: 'phanthecong' },
+    { name: 'Nguyễn Tô Hoài', license_number: '004601/ĐNA-CCHN', license_date: '2014-09-06', specialty: 'Ngoại khoa', department: 'Khoa Ngoại chấn thương', username: 'nguyentohoai' },
+    { name: 'Phan Võ Thanh Kháng', license_number: '008644/ĐNA-CCHN', license_date: '2020-02-24', specialty: 'Ngoại khoa', department: 'Khoa Ngoại chấn thương', username: 'phanvothanhkhang' },
+    { name: 'Lê Đức Thọ', license_number: '008642/ĐNA-CCHN', license_date: '2020-02-24', specialty: 'Ngoại khoa', department: 'Khoa Ngoại chấn thương', username: 'leductho' },
+
+    // III. Nhi khoa
+    { name: 'Phan Thị Ngọc Yên', license_number: '007344/ĐNA-CCHN', license_date: '2018-03-21', specialty: 'Nhi khoa', department: 'Khoa Nhi', username: 'phanthingocyen' },
+    { name: 'Phan Châu Yên Nhi', license_number: '008627/ĐNA-CCHN', license_date: '2020-02-24', specialty: 'Nhi khoa', department: 'Khoa Nhi', username: 'phanchauyennhi' },
+    { name: 'Trần Thị Vy Vy', license_number: '007916/ĐNA-CCHN', license_date: '2019-03-09', specialty: 'Nhi khoa', department: 'Khoa Nhi', username: 'tranthivyvy' },
+    { name: 'Trần Thị Xuân Trang', license_number: '007999/ĐNA-CCHN', license_date: '2019-04-16', specialty: 'Nhi khoa', department: 'Khoa Nhi', username: 'tranthixuantrang' },
+    { name: 'Lê Thị Nhật Hà', license_number: '008647/ĐNA-CCHN', license_date: '2020-02-24', specialty: 'Nhi khoa', department: 'Khoa Nhi', username: 'lethinhatha' },
+    { name: 'Nguyễn Phan Liên Hải', license_number: '008689/ĐNA-CCHN', license_date: '2020-03-31', specialty: 'Nhi khoa', department: 'Khoa Nhi', username: 'nguyenphanlienhai' },
+
+    // IV. Sản khoa
+    { name: 'Trần Thị Hồng Diệm', license_number: '002635/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Sản phụ khoa', department: 'Khoa Sản phụ khoa', username: 'tranthihongdiem' },
+    { name: 'Nguyễn Thị Anh Tâm', license_number: '000245/ĐNA-CCHN', license_date: '2012-07-20', specialty: 'Sản phụ khoa', department: 'Khoa Sản phụ khoa', username: 'nguyenthianhtam' },
+    { name: 'Nguyễn Tiến Chung', license_number: '0016998/BYT-CCHN', license_date: '2014-02-28', specialty: 'Sản phụ khoa', department: 'Khoa Sản phụ khoa', username: 'nguyentienchung' },
+    { name: 'Nguyễn Văn Liêm', license_number: '009194/ĐNA-CCHN', license_date: '2021-06-01', specialty: 'Sản phụ khoa', department: 'Khoa Sản phụ khoa', username: 'nguyenvanliem' },
+
+    // V. Tai mũi họng
+    { name: 'Đoàn Nhật Khánh', license_number: '006457/ĐNA-CCHN', license_date: '2017-01-09', specialty: 'Tai mũi họng', department: 'Khoa Tai Mũi Họng', username: 'doannhatkhanh' },
+    { name: 'Nguyễn Văn Lực', license_number: '001009/ĐNA-CCHN', license_date: '2012-11-28', specialty: 'Tai mũi họng', department: 'Khoa Tai Mũi Họng', username: 'nguyenvanluc' },
+
+    // VI. Mắt
+    { name: 'Nguyễn Cửu Cường', license_number: '001457/ĐNA-CCHN', license_date: '2013-01-15', specialty: 'Mắt', department: 'Khoa Mắt', username: 'nguyencuucuong' }
+  ];
+
+  for (const s of supervisorList) {
+    // Check if license number exists in supervisors table
+    const check = await client.query('SELECT id FROM supervisors WHERE license_number = $1', [s.license_number]);
+    if (check.rows.length === 0) {
+      // Create user account first
+      let userId = null;
+      const userCheck = await client.query('SELECT id FROM users WHERE username = $1', [s.username]);
+      if (userCheck.rows.length > 0) {
+        userId = userCheck.rows[0].id;
+      } else {
+        const uRes = await client.query(
+          `INSERT INTO users (username, password, role, name, email, phone)
+           VALUES ($1, $2, 'Người hướng dẫn', $3, $4, $5) RETURNING id`,
+          [s.username, 'LienChieu@2026', s.name, `${s.username}@lienchieu.gov.vn`, '0900000000']
+        );
+        userId = uRes.rows[0].id;
+      }
+      
+      // Insert supervisor record
+      await client.query(
+        `INSERT INTO supervisors (user_id, name, license_number, specialty, license_date, department)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [userId, s.name, s.license_number, s.specialty, s.license_date, s.department]
+      );
+    }
+  }
+}
+
 // Database Migration & Seeding Function
 async function initializeDatabase() {
   const client = await pool.connect();
@@ -213,6 +286,9 @@ async function initializeDatabase() {
     for (const dept of defaultDepts) {
       await client.query('INSERT INTO departments (name) VALUES ($1) ON CONFLICT DO NOTHING', [dept]);
     }
+
+    console.log('Seeding default supervisors from official list...');
+    await seedSupervisors(client);
 
     console.log('Production database tables initialized cleanly.');
     await client.query('COMMIT');
