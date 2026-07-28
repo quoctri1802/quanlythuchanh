@@ -1258,6 +1258,43 @@ app.post('/api/evaluations', async (req, res) => {
     rating_discipline
   } = req.body;
   try {
+    // Validate evaluator specialty matches the department specialty if not "Đánh giá chung"
+    if (department !== 'Đánh giá chung' && evaluator_id) {
+      const supQuery = await pool.query('SELECT specialty, name FROM supervisors WHERE id = $1', [evaluator_id]);
+      if (supQuery.rows.length > 0) {
+        const supervisorSpecialty = supQuery.rows[0].specialty.toLowerCase();
+        const supervisorName = supQuery.rows[0].name;
+        const deptLower = department.toLowerCase();
+        
+        // Define specialty match keywords
+        const keywords = [
+          { key: 'nội', match: ['nội'] },
+          { key: 'ngoại', match: ['ngoại'] },
+          { key: 'sản', match: ['sản', 'phụ sản'] },
+          { key: 'nhi', match: ['nhi'] },
+          { key: 'tai mũi họng', match: ['tai mũi họng'] },
+          { key: 'răng hàm mặt', match: ['răng hàm mặt', 'rhm'] },
+          { key: 'mắt', match: ['mắt'] },
+          { key: 'y học cổ truyền', match: ['y học cổ truyền', 'yhct'] },
+          { key: 'da liễu', match: ['da liễu'] },
+          { key: 'hồi sức', match: ['hồi sức', 'cấp cứu'] },
+          { key: 'xét nghiệm', match: ['xét nghiệm'] },
+          { key: 'hình ảnh', match: ['hình ảnh'] },
+          { key: 'phục hồi', match: ['phục hồi', 'vật lý trị liệu', 'phcn'] }
+        ];
+
+        const matchedKeyword = keywords.find(kw => kw.match.some(m => deptLower.includes(m)));
+        if (matchedKeyword) {
+          const isMatch = matchedKeyword.match.some(m => supervisorSpecialty.includes(m));
+          if (!isMatch) {
+            return res.status(400).json({ 
+              error: `Bác sĩ ${supervisorName} chuyên khoa '${supQuery.rows[0].specialty}' không được phép đánh giá chuyên khoa '${department}'.` 
+            });
+          }
+        }
+      }
+    }
+
     // Delete existing evaluation of same type + department
     await pool.query('DELETE FROM evaluations WHERE practitioner_id=$1 AND department=$2 AND evaluation_type=$3', [practitioner_id, department, evaluation_type || 'Định kỳ']);
     

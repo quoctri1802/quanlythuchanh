@@ -1656,6 +1656,34 @@ function renderEvaluationsTabContent() {
   });
 }
 
+// Filter evaluators by department specialty
+function filterEvaluatorDropdownByDepartment(selectedDeptName) {
+  const selectEval = document.getElementById('eval-evaluator');
+  selectEval.innerHTML = '';
+  
+  const keyword = getSpecialtyKeywordFromRotationName(selectedDeptName);
+  const filteredSups = state.supervisors.filter(s => isSupervisorMatchingRotation(s, keyword));
+  
+  if (filteredSups.length === 0) {
+    selectEval.innerHTML = '<option value="">(Không có người hướng dẫn phù hợp chuyên khoa)</option>';
+  } else {
+    filteredSups.forEach(s => {
+      selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
+    });
+  }
+
+  // If supervisor is logged in, auto-select and lock the evaluator field
+  if (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor) {
+    selectEval.value = state.currentSupervisor.id;
+    selectEval.disabled = true;
+  } else {
+    selectEval.disabled = false;
+    if (state.activePractitionerDetail.practitioner.supervisor_id && filteredSups.some(s => s.id === state.activePractitionerDetail.practitioner.supervisor_id)) {
+      selectEval.value = state.activePractitionerDetail.practitioner.supervisor_id;
+    }
+  }
+}
+
 // Add Evaluation C.01
 document.getElementById('btn-add-evaluation').addEventListener('click', () => {
   document.getElementById('form-add-evaluation').reset();
@@ -1682,22 +1710,13 @@ document.getElementById('btn-add-evaluation').addEventListener('click', () => {
   // Always allow global/final evaluation option
   selectDept.innerHTML += `<option value="Đánh giá chung">Đánh giá chung</option>`;
 
-  const selectEval = document.getElementById('eval-evaluator');
-  selectEval.innerHTML = '';
-  state.supervisors.forEach(s => {
-    selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
-  });
-  
-  // If supervisor is logged in, auto-select and lock the evaluator field
-  if (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor) {
-    selectEval.value = state.currentSupervisor.id;
-    selectEval.disabled = true;
-  } else {
-    selectEval.disabled = false;
-    if (state.activePractitionerDetail.practitioner.supervisor_id) {
-      selectEval.value = state.activePractitionerDetail.practitioner.supervisor_id;
-    }
-  }
+  // Filter initially
+  filterEvaluatorDropdownByDepartment(selectDept.value);
+
+  // Hook change event
+  selectDept.onchange = (e) => {
+    filterEvaluatorDropdownByDepartment(e.target.value);
+  };
 
   document.getElementById('modal-add-evaluation').classList.add('active');
 });
