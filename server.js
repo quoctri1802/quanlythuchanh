@@ -346,6 +346,10 @@ async function seedDefaultRotations(client, practitionerId, program, specialty, 
         { name: 'Thực hành lâm sàng chuyên khoa Mắt (01 tuần)', duration: '1 tuần' },
         { name: 'Thực hành lâm sàng chuyên khoa Răng hàm mặt (01 tuần)', duration: '1 tuần' }
       ];
+    } else if (specialty === 'Dược sĩ') {
+      rotations = [
+        { name: 'Dược (24 tháng)', duration: '96 tuần' }
+      ];
     } else if (['Điều dưỡng', 'Hộ sinh', 'Kỹ thuật y'].includes(specialty)) {
       rotations = [
         { name: 'Thực hành Chuyên môn Chức danh', duration: '5 tháng' },
