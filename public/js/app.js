@@ -1609,12 +1609,24 @@ function renderEvaluationsTabContent() {
     const tr = document.createElement('tr');
     const evalDate = new Date(e.evaluation_date).toLocaleDateString('vi-VN');
 
+    let detailedHTML = '';
+    if (e.rating_knowledge) {
+      detailedHTML = `
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-color); font-size: 11.5px; color: var(--text-secondary);">
+          <strong>Đánh giá năng lực giai đoạn (Bảng 1):</strong><br>
+          Kiến thức: <strong>${e.rating_knowledge}</strong> | Kỹ năng: <strong>${e.rating_skills}</strong> | Kinh nghiệm: <strong>${e.rating_experience}</strong><br>
+          Học hỏi: <strong>${e.rating_growth}</strong> | Thái độ: <strong>${e.rating_attitude}</strong> | Kỷ luật: <strong>${e.rating_discipline}</strong>
+        </div>
+      `;
+    }
+
     tr.innerHTML = `
       <td><strong>${e.evaluation_type}</strong><br><span style="font-size:11px; color:var(--text-secondary);">${e.department}</span></td>
       <td style="font-size:12px; line-height: 1.5;">
         Chuyên môn: <strong>${e.rating_specialty}</strong> | Y đức: <strong>${e.rating_ethics}</strong><br>
         Pháp luật: <strong>${e.rating_law}</strong> | Giao tiếp: <strong>${e.rating_communication}</strong><br>
         An toàn bệnh nhân: <strong>${e.rating_safety}</strong>
+        ${detailedHTML}
       </td>
       <td><span class="badge ${e.result === 'Đạt' ? 'badge-success' : 'badge-danger'}">${e.result}</span></td>
       <td style="max-width:250px; font-size:12.5px;">${e.comment || ''}</td>
@@ -1630,29 +1642,49 @@ document.getElementById('btn-add-evaluation').addEventListener('click', () => {
   const selectDept = document.getElementById('eval-department');
   
   selectDept.innerHTML = '';
-  if (state.activePractitionerDetail.practitioner.program === 'TT21') {
-    ['Nội', 'Ngoại', 'Sản', 'Nhi', 'Khác', 'Đánh giá chung'].forEach(dept => {
-      selectDept.innerHTML += `<option value="${dept}">${dept}</option>`;
+  // Dynamically populate actual rotation stages of practitioner if available
+  if (state.activePractitionerDetail.rotations && state.activePractitionerDetail.rotations.length > 0) {
+    state.activePractitionerDetail.rotations.forEach(r => {
+      selectDept.innerHTML += `<option value="${r.name}">${r.name}</option>`;
     });
   } else {
-    ['Chuyên môn', 'Hồi sức cấp cứu', 'Đánh giá chung'].forEach(dept => {
-      selectDept.innerHTML += `<option value="${dept}">${dept}</option>`;
-    });
+    // Fallback default
+    if (state.activePractitionerDetail.practitioner.program === 'TT21') {
+      ['Nội', 'Ngoại', 'Sản', 'Nhi', 'Khác'].forEach(dept => {
+        selectDept.innerHTML += `<option value="${dept}">${dept}</option>`;
+      });
+    } else {
+      ['Chuyên môn', 'Hồi sức cấp cứu'].forEach(dept => {
+        selectDept.innerHTML += `<option value="${dept}">${dept}</option>`;
+      });
+    }
   }
+  // Always allow global/final evaluation option
+  selectDept.innerHTML += `<option value="Đánh giá chung">Đánh giá chung</option>`;
 
   const selectEval = document.getElementById('eval-evaluator');
   selectEval.innerHTML = '';
   state.supervisors.forEach(s => {
     selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
   });
-  if (state.activePractitionerDetail.practitioner.supervisor_id) {
-    selectEval.value = state.activePractitionerDetail.practitioner.supervisor_id;
+  
+  // If supervisor is logged in, auto-select and lock the evaluator field
+  if (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor) {
+    selectEval.value = state.currentSupervisor.id;
+    selectEval.disabled = true;
+  } else {
+    selectEval.disabled = false;
+    if (state.activePractitionerDetail.practitioner.supervisor_id) {
+      selectEval.value = state.activePractitionerDetail.practitioner.supervisor_id;
+    }
   }
 
   document.getElementById('modal-add-evaluation').classList.add('active');
 });
 document.getElementById('form-add-evaluation').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const selectEval = document.getElementById('eval-evaluator');
+  
   const formData = {
     practitioner_id: state.activePractitionerDetail.practitioner.id,
     department: document.getElementById('eval-department').value,
@@ -1664,7 +1696,13 @@ document.getElementById('form-add-evaluation').addEventListener('submit', async 
     rating_safety: document.getElementById('eval-safety').value,
     result: document.getElementById('eval-result').value,
     comment: document.getElementById('eval-comment').value,
-    evaluator_id: parseInt(document.getElementById('eval-evaluator').value)
+    evaluator_id: parseInt(selectEval.value),
+    rating_knowledge: document.getElementById('eval-knowledge').value,
+    rating_skills: document.getElementById('eval-skills').value,
+    rating_experience: document.getElementById('eval-experience').value,
+    rating_growth: document.getElementById('eval-growth').value,
+    rating_attitude: document.getElementById('eval-attitude').value,
+    rating_discipline: document.getElementById('eval-discipline').value
   };
 
   try {

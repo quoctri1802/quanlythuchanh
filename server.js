@@ -267,6 +267,14 @@ async function initializeDatabase() {
     await client.query(`
       ALTER TABLE practitioner_rotations ADD COLUMN IF NOT EXISTS supervisor_id INTEGER REFERENCES supervisors(id) ON DELETE SET NULL;
     `);
+    await client.query(`
+      ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS rating_knowledge VARCHAR(50);
+      ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS rating_skills VARCHAR(50);
+      ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS rating_experience VARCHAR(50);
+      ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS rating_growth VARCHAR(50);
+      ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS rating_attitude VARCHAR(50);
+      ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS rating_discipline VARCHAR(50);
+    `);
 
     console.log('Seeding administrative accounts...');
 
@@ -1230,15 +1238,56 @@ app.get('/api/evaluations', async (req, res) => {
 });
 
 app.post('/api/evaluations', async (req, res) => {
-  const { practitioner_id, department, evaluation_type, rating_specialty, rating_ethics, rating_law, rating_communication, rating_safety, result, comment, evaluator_id } = req.body;
+  const { 
+    practitioner_id, 
+    department, 
+    evaluation_type, 
+    rating_specialty, 
+    rating_ethics, 
+    rating_law, 
+    rating_communication, 
+    rating_safety, 
+    result, 
+    comment, 
+    evaluator_id,
+    rating_knowledge,
+    rating_skills,
+    rating_experience,
+    rating_growth,
+    rating_attitude,
+    rating_discipline
+  } = req.body;
   try {
     // Delete existing evaluation of same type + department
     await pool.query('DELETE FROM evaluations WHERE practitioner_id=$1 AND department=$2 AND evaluation_type=$3', [practitioner_id, department, evaluation_type || 'Định kỳ']);
     
     const resEval = await pool.query(
-      `INSERT INTO evaluations (practitioner_id, department, evaluation_type, rating_specialty, rating_ethics, rating_law, rating_communication, rating_safety, result, comment, evaluator_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [practitioner_id, department, evaluation_type || 'Định kỳ', rating_specialty, rating_ethics, rating_law, rating_communication, rating_safety, result, comment, evaluator_id]
+      `INSERT INTO evaluations (
+         practitioner_id, department, evaluation_type, 
+         rating_specialty, rating_ethics, rating_law, rating_communication, rating_safety, 
+         result, comment, evaluator_id,
+         rating_knowledge, rating_skills, rating_experience, rating_growth, rating_attitude, rating_discipline
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
+      [
+        practitioner_id, 
+        department, 
+        evaluation_type || 'Định kỳ', 
+        rating_specialty, 
+        rating_ethics, 
+        rating_law, 
+        rating_communication, 
+        rating_safety, 
+        result, 
+        comment, 
+        evaluator_id,
+        rating_knowledge,
+        rating_skills,
+        rating_experience,
+        rating_growth,
+        rating_attitude,
+        rating_discipline
+      ]
     );
     res.status(201).json(resEval.rows[0]);
   } catch (err) {
