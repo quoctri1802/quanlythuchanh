@@ -61,7 +61,23 @@ async function seedSupervisors(client) {
     { name: 'Nguyễn Văn Lực', license_number: '001009/ĐNA-CCHN', license_date: '2012-11-28', specialty: 'Tai mũi họng', department: 'Khoa Tai Mũi Họng', username: 'nguyenvanluc' },
 
     // VI. Mắt
-    { name: 'Nguyễn Cửu Cường', license_number: '001457/ĐNA-CCHN', license_date: '2013-01-15', specialty: 'Mắt', department: 'Khoa Mắt', username: 'nguyencuucuong' }
+    { name: 'Nguyễn Cửu Cường', license_number: '001457/ĐNA-CCHN', license_date: '2013-01-15', specialty: 'Mắt', department: 'Khoa Mắt', username: 'nguyencuucuong' },
+
+    // VII. Y học cổ truyền
+    { name: 'Nguyễn Đình Phát', license_number: '002996/ĐNA-CCHN', license_date: '2014-01-21', specialty: 'Y học cổ truyền', department: 'Khoa Y học cổ truyền', username: 'nguyendinhphat' },
+    { name: 'Ngô Văn Khanh', license_number: '002733/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Y học cổ truyền', department: 'Khoa Y học cổ truyền', username: 'ngovankhanh' },
+    { name: 'Nguyễn Đình Minh Đạt', license_number: '007427/ĐNA-CCHN', license_date: '2018-05-19', specialty: 'Y học cổ truyền', department: 'Khoa Y học cổ truyền', username: 'nguyendinhminhdat' },
+    { name: 'Ngô Thị Kiều Vi', license_number: '008649/ĐNA-CCHN', license_date: '2020-02-24', specialty: 'Y học cổ truyền', department: 'Khoa Y học cổ truyền', username: 'ngothikieuvi' },
+
+    // VIII. Hồi sức cấp cứu
+    { name: 'Đinh Văn Thiệu', license_number: '006378/ĐNA-CCHN', license_date: '2016-11-23', specialty: 'Hồi sức cấp cứu', department: 'Khoa Hồi sức cấp cứu', username: 'dinhvanthieu' },
+
+    // IX. Da liễu
+    { name: 'Nguyễn Thị Thu Phương', license_number: '007391/ĐNA-CCHN', license_date: '2018-04-18', specialty: 'Da liễu', department: 'Khoa Da liễu', username: 'nguyenthithuphuong' },
+
+    // X. Răng hàm mặt
+    { name: 'Võ Thị Mỹ Hiệu', license_number: '005742/ĐNA-CCHN', license_date: '2015-12-04', specialty: 'Răng hàm mặt', department: 'Khoa Răng Hàm Mặt', username: 'vothimyhieu' },
+    { name: 'Lê Hồng Bảo Ngọc', license_number: '008672/ĐNA-CCHN', license_date: '2020-03-26', specialty: 'Răng hàm mặt', department: 'Khoa Răng Hàm Mặt', username: 'lehongbaongoc' }
   ];
 
   for (const s of supervisorList) {
@@ -281,6 +297,8 @@ async function initializeDatabase() {
       'Khoa Tai Mũi Họng',
       'Khoa Răng Hàm Mặt',
       'Khoa Mắt',
+      'Khoa Y học cổ truyền',
+      'Khoa Da liễu',
       'Phòng Đào tạo'
     ];
     for (const dept of defaultDepts) {
