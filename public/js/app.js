@@ -672,6 +672,12 @@ function renderPractitionersList() {
   const container = document.getElementById('practitioners-list-container');
   container.innerHTML = '';
 
+  const isManager = state.currentUser.role === 'Cán bộ quản lý' || state.currentUser.role === 'Quản trị viên';
+  const registerBtn = document.getElementById('btn-register-practitioner');
+  const importBtn = document.getElementById('btn-import-practitioners');
+  if (registerBtn) registerBtn.style.display = isManager ? 'inline-flex' : 'none';
+  if (importBtn) importBtn.style.display = isManager ? 'inline-flex' : 'none';
+
   let list = state.practitioners;
   
   if (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor) {
@@ -2190,5 +2196,212 @@ document.getElementById('btn-sys-restore').addEventListener('click', async () =>
     }
   } catch (err) {
     alert('Lỗi kết nối: ' + err.message);
+  }
+});
+
+// =========================================================================
+// FEATURE: IMPORT PRACTITIONERS FROM CSV
+// =========================================================================
+state.parsedImportRows = [];
+
+function parseCSV(text) {
+  const lines = text.split('\n');
+  const data = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    // Split by comma, handling potential double quotes
+    const cols = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let c = 0; c < line.length; c++) {
+      const char = line[c];
+      if (char === '"' || char === "'") {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        cols.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    cols.push(current.trim());
+    
+    // Skip header row
+    if (i === 0 && (cols[0].toLowerCase().includes('họ') || cols[0].toLowerCase().includes('name') || cols[0].toLowerCase().includes('tên'))) {
+      continue;
+    }
+    
+    if (cols.length >= 2 && cols[0]) {
+      data.push({
+        name: cols[0] || '',
+        dob: cols[1] || '',
+        gender: cols[2] || 'Nam',
+        email: cols[3] || '',
+        phone: cols[4] || '',
+        degree: cols[5] || 'Đại học',
+        specialty: cols[6] || '',
+        program: cols[7] || 'ND96',
+        start_date: cols[8] || '',
+        username: cols[9] || '',
+        password: cols[10] || '123456'
+      });
+    }
+  }
+  return data;
+}
+
+// Open Import modal
+document.getElementById('btn-import-practitioners').addEventListener('click', () => {
+  document.getElementById('import-file-input').value = '';
+  document.getElementById('import-preview-wrapper').style.display = 'none';
+  document.getElementById('btn-submit-import').disabled = true;
+  state.parsedImportRows = [];
+  
+  document.getElementById('modal-import-practitioners').classList.add('active');
+});
+
+// Bind close button in footer
+document.querySelector('#modal-import-practitioners .modal-close-btn').addEventListener('click', () => {
+  document.getElementById('modal-import-practitioners').classList.remove('active');
+});
+
+// Download CSV template
+document.getElementById('btn-download-csv-template').addEventListener('click', () => {
+  const csvContent = "Họ và tên,Ngày sinh (YYYY-MM-DD),Giới tính,Email,Số điện thoại,Văn bằng chuyên môn,Chức danh đăng ký,Khung thực hành (ND96/TT21),Ngày bắt đầu (YYYY-MM-DD),Tên đăng nhập,Mật khẩu\n" +
+                     "Nguyễn Văn An,1998-05-15,Nam,vanan@lienchieu.gov.vn,0912345678,Bác sĩ y khoa,Bác sĩ,ND96,2026-08-01,nguyenvanan,LienChieu@2026\n" +
+                     "Trần Thị Bình,2000-02-20,Nữ,thibinh@lienchieu.gov.vn,0987654321,Cử nhân điều dưỡng,Điều dưỡng,ND96,2026-08-01,tranthibinh,LienChieu@2026";
+                     
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "mau_danh_sach_hoc_vien.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
+
+// File input handler
+document.getElementById('import-file-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const text = evt.target.result;
+    const parsed = parseCSV(text);
+    
+    state.parsedImportRows = parsed;
+    renderImportPreview();
+  };
+  reader.readAsText(file);
+});
+
+function renderImportPreview() {
+  const tbody = document.getElementById('import-preview-tbody');
+  tbody.innerHTML = '';
+  
+  if (state.parsedImportRows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 15px;">Không tìm thấy dòng dữ liệu hợp lệ trong file.</td></tr>`;
+    document.getElementById('import-preview-wrapper').style.display = 'block';
+    document.getElementById('btn-submit-import').disabled = true;
+    return;
+  }
+  
+  state.parsedImportRows.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center;"><input type="checkbox" class="import-row-cb" data-idx="${idx}" checked></td>
+      <td><strong>${row.name}</strong></td>
+      <td>${row.dob}</td>
+      <td>${row.gender}</td>
+      <td>${row.email || ''}<br><small style="color: var(--text-light);">${row.phone || ''}</small></td>
+      <td>${row.degree}</td>
+      <td>${row.specialty}</td>
+      <td>${row.program === 'ND96' ? 'NĐ 96' : 'TT 21'}</td>
+      <td>${row.start_date}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  document.getElementById('import-preview-wrapper').style.display = 'block';
+  updateImportSubmitButtonAndSummary();
+  
+  // Hook checkboxes change events
+  document.querySelectorAll('.import-row-cb').forEach(cb => {
+    cb.addEventListener('change', updateImportSubmitButtonAndSummary);
+  });
+}
+
+// Select all checkbox
+document.getElementById('import-select-all').addEventListener('change', (e) => {
+  const checked = e.target.checked;
+  document.querySelectorAll('.import-row-cb').forEach(cb => {
+    cb.checked = checked;
+  });
+  updateImportSubmitButtonAndSummary();
+});
+
+function updateImportSubmitButtonAndSummary() {
+  const cbs = document.querySelectorAll('.import-row-cb');
+  const checkedCount = Array.from(cbs).filter(cb => cb.checked).length;
+  
+  document.getElementById('import-count-summary').innerText = `Đã chọn: ${checkedCount}/${cbs.length}`;
+  document.getElementById('btn-submit-import').disabled = checkedCount === 0;
+  document.getElementById('import-select-all').checked = checkedCount === cbs.length && cbs.length > 0;
+}
+
+// Submit Import
+document.getElementById('btn-submit-import').addEventListener('click', async () => {
+  const cbs = document.querySelectorAll('.import-row-cb');
+  const selectedRows = [];
+  
+  cbs.forEach(cb => {
+    if (cb.checked) {
+      const idx = parseInt(cb.getAttribute('data-idx'));
+      selectedRows.push(state.parsedImportRows[idx]);
+    }
+  });
+  
+  if (selectedRows.length === 0) return;
+  
+  const submitBtn = document.getElementById('btn-submit-import');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+  
+  try {
+    const res = await fetch('/api/practitioners/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ practitioners: selectedRows })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      let alertMsg = `Tiếp nhận thành công ${data.imported_count} học viên!`;
+      if (data.errors && data.errors.length > 0) {
+        alertMsg += `\nCó một số lỗi xảy ra:\n${data.errors.join('\n')}`;
+      }
+      alert(alertMsg);
+      
+      // Close modal
+      document.getElementById('modal-import-practitioners').classList.remove('active');
+      
+      // Refresh UI
+      await refreshData();
+      renderPractitionersList();
+    } else {
+      const err = await res.json();
+      alert('Import thất bại: ' + (err.error || 'Lỗi không rõ nguyên nhân'));
+    }
+  } catch (err) {
+    alert('Lỗi kết nối máy chủ: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Tiếp nhận các học viên đã chọn';
   }
 });

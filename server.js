@@ -828,6 +828,93 @@ app.post('/api/practitioners', async (req, res) => {
   }
 });
 
+app.post('/api/practitioners/bulk', async (req, res) => {
+  const { practitioners } = req.body;
+  if (!Array.isArray(practitioners)) {
+    return res.status(400).json({ error: 'Dữ liệu không hợp lệ. Phải cung cấp một danh sách học viên.' });
+  }
+
+  const client = await pool.connect();
+  const results = [];
+  const errors = [];
+
+  try {
+    for (let i = 0; i < practitioners.length; i++) {
+      const p = practitioners[i];
+      const { 
+        name, dob, gender, email, phone, degree, specialty, 
+        program, start_date, supervisor_id, username, password 
+      } = p;
+
+      if (!name || !specialty) {
+        errors.push(`Dòng ${i + 1}: Thiếu Họ tên hoặc Chức danh đăng ký.`);
+        continue;
+      }
+
+      // Check username duplicate in database
+      const uVal = username || `hv_${Date.now()}_${i}`;
+      const userCheck = await client.query('SELECT id FROM users WHERE username = $1', [uVal]);
+      if (userCheck.rows.length > 0) {
+        errors.push(`Dòng ${i + 1}: Tên đăng nhập '${uVal}' đã tồn tại trong hệ thống.`);
+        continue;
+      }
+
+      try {
+        await client.query('BEGIN');
+
+        // Insert user
+        const uRes = await client.query(
+          `INSERT INTO users (username, password, role, name, email, phone)
+           VALUES ($1, $2, 'Học viên', $3, $4, $5) RETURNING id`,
+          [uVal, password || '123456', name, email || null, phone || null]
+        );
+        const userId = uRes.rows[0].id;
+
+        // Insert practitioner profile directly as "Đã duyệt"
+        const result = await client.query(
+          `INSERT INTO practitioners (
+             user_id, name, dob, gender, email, phone, degree, specialty, 
+             program, start_date, supervisor_id, status, profile_status
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Đang thực hành', 'Đã duyệt') RETURNING *`,
+          [
+            userId, name, dob || new Date().toISOString().split('T')[0], 
+            gender || 'Nam', email || null, phone || null, degree || 'Đại học', 
+            specialty, program || 'ND96', start_date || new Date().toISOString().split('T')[0], 
+            supervisor_id || null
+          ]
+        );
+
+        // Seed default rotations
+        await seedDefaultRotations(
+          client, 
+          result.rows[0].id, 
+          program || 'ND96', 
+          specialty, 
+          start_date || new Date().toISOString().split('T')[0], 
+          supervisor_id || null
+        );
+
+        await client.query('COMMIT');
+        results.push(result.rows[0]);
+      } catch (rowErr) {
+        await client.query('ROLLBACK');
+        errors.push(`Dòng ${i + 1}: Lỗi lưu CSDL (${rowErr.message})`);
+      }
+    }
+
+    res.status(201).json({ 
+      success: true, 
+      imported_count: results.length,
+      errors: errors 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 app.put('/api/practitioners/:id', async (req, res) => {
   const { name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, status, profile_status, rejection_reason, avatar_url, degree_scan_url } = req.body;
   const client = await pool.connect();

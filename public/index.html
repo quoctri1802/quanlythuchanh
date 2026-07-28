@@ -208,6 +208,9 @@
           <button class="btn btn-primary" id="btn-register-practitioner">
             <i class="fa-solid fa-user-plus"></i> Tiếp nhận Học viên (A.02)
           </button>
+          <button class="btn btn-secondary" id="btn-import-practitioners" style="display: none;">
+            <i class="fa-solid fa-file-import"></i> Import Học viên (CSV)
+          </button>
         </div>
 
         <div class="details-card">
@@ -608,6 +611,64 @@
   </div>
 
   <!-- MODALS CONTAINER -->
+
+  <!-- Modal: Import Practitioners -->
+  <div class="modal" id="modal-import-practitioners">
+    <div class="modal-content" style="max-width: 850px;">
+      <div class="modal-header">
+        <h3>Import danh sách học viên mới</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 12px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
+          Chọn file CSV chứa danh sách học viên để tiếp nhận hàng loạt vào hệ thống. Các cột trong file CSV bao gồm:<br>
+          <code style="background-color: var(--bg-secondary); padding: 4px 8px; border-radius: 4px; display: block; margin-top: 6px; font-size: 11px; word-break: break-all; color: var(--accent-color);">
+            Họ và tên, Ngày sinh (YYYY-MM-DD), Giới tính, Email, Số điện thoại, Văn bằng, Chức danh đăng ký, Khung thực hành (ND96/TT21), Ngày bắt đầu (YYYY-MM-DD), Tên đăng nhập, Mật khẩu
+          </code>
+        </p>
+        
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+          <input type="file" id="import-file-input" accept=".csv" style="padding: 6px; border: 1px dashed var(--border-color); border-radius: 4px; flex-grow: 1; font-size: 13px;">
+          <button class="btn btn-secondary" id="btn-download-csv-template" style="font-size:12.5px; white-space: nowrap; height: 38px;">
+            <i class="fa-solid fa-download"></i> Tải file mẫu CSV
+          </button>
+        </div>
+
+        <div id="import-preview-wrapper" style="display: none; margin-top: 15px;">
+          <div style="font-weight: 600; font-size: 13.5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Xem trước danh sách học viên nhập từ file:</span>
+            <span style="font-size: 12px; font-weight: normal; color: var(--text-light);" id="import-count-summary">Đã chọn: 0/0</span>
+          </div>
+          <div class="table-responsive" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px;">
+            <table class="custom-table" style="font-size: 12px;">
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align: center;"><input type="checkbox" id="import-select-all" checked></th>
+                  <th>Họ tên</th>
+                  <th>Ngày sinh</th>
+                  <th>Giới tính</th>
+                  <th>Thông tin liên hệ</th>
+                  <th>Văn bằng</th>
+                  <th>Chức danh</th>
+                  <th>Khung</th>
+                  <th>Ngày bắt đầu</th>
+                </tr>
+              </thead>
+              <tbody id="import-preview-tbody">
+                <!-- Rows populated by parsing CSV -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 15px 20px; border-top: 1px solid var(--border-color);">
+        <button class="btn btn-secondary modal-close-btn">Đóng</button>
+        <button class="btn btn-primary" id="btn-submit-import" disabled>
+          <i class="fa-solid fa-cloud-arrow-up"></i> Tiếp nhận các học viên đã chọn
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Register Practitioner (A.02) -->
   <div class="modal" id="modal-register-practitioner">
