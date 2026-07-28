@@ -505,7 +505,7 @@ async function seedDefaultRotations(client, practitionerId, program, specialty, 
         rot.duration,
         i === 0 ? 'Đang thực hành' : 'Chờ xoay khoa',
         i,
-        supervisorId || null
+        null
       ]
     );
   }

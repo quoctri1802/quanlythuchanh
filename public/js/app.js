@@ -1359,6 +1359,101 @@ async function refreshActivePractitionerDetail() {
   state.activePractitionerDetail = { practitioner, logs, evaluations, training, rotations };
 }
 
+function getSpecialtyKeywordFromRotationName(rotName) {
+  const nameLower = (rotName || '').toLowerCase();
+  if (nameLower.includes('nội')) return 'nội';
+  if (nameLower.includes('ngoại')) return 'ngoại';
+  if (nameLower.includes('nhi')) return 'nhi';
+  if (nameLower.includes('sản')) return 'sản';
+  if (nameLower.includes('tai mũi họng')) return 'tai mũi họng';
+  if (nameLower.includes('răng hàm mặt')) return 'răng hàm mặt';
+  if (nameLower.includes('mắt')) return 'mắt';
+  if (nameLower.includes('y học cổ truyền')) return 'y học cổ truyền';
+  if (nameLower.includes('da liễu')) return 'da liễu';
+  if (nameLower.includes('hồi sức') || nameLower.includes('cấp cứu')) return 'hồi sức';
+  if (nameLower.includes('xét nghiệm')) return 'xét nghiệm';
+  if (nameLower.includes('hình ảnh')) return 'hình ảnh';
+  if (nameLower.includes('vật lý trị liệu') || nameLower.includes('phục hồi chức năng') || nameLower.includes('phcn')) return 'phục hồi';
+  return null;
+}
+
+function isSupervisorMatchingRotation(s, keyword) {
+  if (!keyword) return true; // show all if no keyword is found
+  const specialtyLower = (s.specialty || '').toLowerCase();
+  const departmentLower = (s.department || '').toLowerCase();
+  
+  if (keyword === 'nội') {
+    return specialtyLower.includes('nội') || departmentLower.includes('nội');
+  }
+  if (keyword === 'ngoại') {
+    return specialtyLower.includes('ngoại') || departmentLower.includes('ngoại');
+  }
+  if (keyword === 'nhi') {
+    return specialtyLower.includes('nhi') || departmentLower.includes('nhi');
+  }
+  if (keyword === 'sản') {
+    return specialtyLower.includes('sản') || departmentLower.includes('sản');
+  }
+  if (keyword === 'tai mũi họng') {
+    return specialtyLower.includes('tai mũi họng') || departmentLower.includes('tai mũi họng');
+  }
+  if (keyword === 'răng hàm mặt') {
+    return specialtyLower.includes('răng hàm mặt') || departmentLower.includes('răng hàm mặt');
+  }
+  if (keyword === 'mắt') {
+    return specialtyLower.includes('mắt') || departmentLower.includes('mắt');
+  }
+  if (keyword === 'y học cổ truyền') {
+    return specialtyLower.includes('y học cổ truyền') || departmentLower.includes('y học cổ truyền');
+  }
+  if (keyword === 'da liễu') {
+    return specialtyLower.includes('da liễu') || departmentLower.includes('da liễu');
+  }
+  if (keyword === 'hồi sức') {
+    return specialtyLower.includes('hồi sức') || specialtyLower.includes('cấp cứu') || departmentLower.includes('hồi sức') || departmentLower.includes('cấp cứu');
+  }
+  if (keyword === 'xét nghiệm') {
+    return specialtyLower.includes('xét nghiệm') || departmentLower.includes('xét nghiệm');
+  }
+  if (keyword === 'hình ảnh') {
+    return specialtyLower.includes('hình ảnh') || departmentLower.includes('hình ảnh');
+  }
+  if (keyword === 'phục hồi') {
+    return specialtyLower.includes('phục hồi') || specialtyLower.includes('vật lý trị liệu') || departmentLower.includes('phục hồi') || departmentLower.includes('vật lý trị liệu');
+  }
+  return true;
+}
+
+function populateSupervisorSelect(selectedId, rotationName) {
+  const selectSup = document.getElementById('stage-supervisor');
+  if (!selectSup) return;
+  
+  selectSup.innerHTML = '<option value="">-- Chọn bác sĩ hướng dẫn --</option>';
+  
+  const keyword = getSpecialtyKeywordFromRotationName(rotationName);
+  
+  if (state.supervisors) {
+    state.supervisors.forEach(s => {
+      if (isSupervisorMatchingRotation(s, keyword)) {
+        selectSup.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
+      }
+    });
+  }
+  
+  selectSup.value = selectedId || '';
+}
+
+// Bind live filtering to the stage-name input
+document.addEventListener('DOMContentLoaded', () => {
+  const stageNameInput = document.getElementById('stage-name');
+  if (stageNameInput) {
+    stageNameInput.addEventListener('input', (e) => {
+      const currentSelectVal = document.getElementById('stage-supervisor').value;
+      populateSupervisorSelect(currentSelectVal, e.target.value);
+    });
+  }
+});
+
 function openAddRotationStageModal() {
   rotationIdToEdit = null;
   const modal = document.getElementById('modal-timeline-stage');
@@ -1368,16 +1463,8 @@ function openAddRotationStageModal() {
   const nextOrder = state.activePractitionerDetail.rotations.length;
   document.getElementById('stage-order').value = nextOrder;
 
-  // Populate supervisor select
-  const selectSup = document.getElementById('stage-supervisor');
-  if (selectSup) {
-    selectSup.innerHTML = '<option value="">-- Chọn bác sĩ hướng dẫn --</option>';
-    if (state.supervisors) {
-      state.supervisors.forEach(s => {
-        selectSup.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
-      });
-    }
-  }
+  // Populate supervisor select with all initially
+  populateSupervisorSelect('', '');
 
   modal.classList.add('active');
 }
@@ -1394,17 +1481,8 @@ function openEditRotationStageModal(rot) {
   document.getElementById('stage-end').value = rot.end_date ? new Date(rot.end_date).toISOString().split('T')[0] : '';
   document.getElementById('stage-order').value = rot.order_index;
 
-  // Populate supervisor select
-  const selectSup = document.getElementById('stage-supervisor');
-  if (selectSup) {
-    selectSup.innerHTML = '<option value="">-- Chọn bác sĩ hướng dẫn --</option>';
-    if (state.supervisors) {
-      state.supervisors.forEach(s => {
-        selectSup.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
-      });
-    }
-    selectSup.value = rot.supervisor_id || '';
-  }
+  // Populate supervisor select, filtering by the current stage name
+  populateSupervisorSelect(rot.supervisor_id, rot.name);
 
   modal.classList.add('active');
 }
