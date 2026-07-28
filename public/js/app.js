@@ -1031,9 +1031,30 @@ function renderSupervisorsList() {
       <td>${eligibilityBadge}</td>
       <td><span style="font-weight:700;">${s.active_trainees}</span> học viên</td>
       <td class="actions-cell">
+        <button class="btn-icon btn-edit-sup" style="margin-right: 5px; color: var(--primary);"><i class="fas fa-edit"></i></button>
         <button class="btn-icon btn-del-sup"><i class="fas fa-trash"></i></button>
       </td>
     `;
+
+    tr.querySelector('.btn-edit-sup').addEventListener('click', () => {
+      const modal = document.getElementById('modal-add-supervisor');
+      const form = document.getElementById('form-add-supervisor');
+      modal.querySelector('h3').innerText = 'Chỉnh sửa thông tin Người hướng dẫn';
+      modal.querySelector('button[type="submit"]').innerText = 'Cập nhật thông tin';
+      
+      form._editId = s.id;
+      document.getElementById('sup-name').value = s.name;
+      document.getElementById('sup-dob').value = s.dob ? s.dob.split('T')[0] : '';
+      document.getElementById('sup-gender').value = s.gender || 'Nam';
+      document.getElementById('sup-email').value = s.email || '';
+      document.getElementById('sup-phone').value = s.phone || '';
+      document.getElementById('sup-specialty').value = s.specialty;
+      document.getElementById('sup-department').value = s.department || '';
+      document.getElementById('sup-license').value = s.license_number;
+      document.getElementById('sup-license-date').value = s.license_date ? s.license_date.split('T')[0] : '';
+      
+      modal.classList.add('active');
+    });
 
     tr.querySelector('.btn-del-sup').addEventListener('click', async () => {
       if (parseInt(s.active_trainees) > 0) {
@@ -1053,11 +1074,17 @@ function renderSupervisorsList() {
 
 // Add new supervisor
 document.getElementById('btn-add-supervisor').addEventListener('click', () => {
-  document.getElementById('form-add-supervisor').reset();
-  document.getElementById('modal-add-supervisor').classList.add('active');
+  const modal = document.getElementById('modal-add-supervisor');
+  const form = document.getElementById('form-add-supervisor');
+  modal.querySelector('h3').innerText = 'Đăng ký Người hướng dẫn';
+  modal.querySelector('button[type="submit"]').innerText = 'Lưu người hướng dẫn';
+  form._editId = null;
+  form.reset();
+  modal.classList.add('active');
 });
 document.getElementById('form-add-supervisor').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const form = e.target;
   const formData = {
     name: document.getElementById('sup-name').value,
     dob: document.getElementById('sup-dob').value,
@@ -1070,9 +1097,13 @@ document.getElementById('form-add-supervisor').addEventListener('submit', async 
     department: document.getElementById('sup-department').value
   };
 
+  const isEdit = !!form._editId;
+  const url = isEdit ? `/api/supervisors/${form._editId}` : '/api/supervisors';
+  const method = isEdit ? 'PUT' : 'POST';
+
   try {
-    const res = await fetch('/api/supervisors', {
-      method: 'POST',
+    const res = await fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     });
@@ -1082,7 +1113,7 @@ document.getElementById('form-add-supervisor').addEventListener('submit', async 
       renderSupervisorsList();
     } else {
       const err = await res.json();
-      alert('Lỗi thêm người hướng dẫn: ' + err.error);
+      alert(`Lỗi ${isEdit ? 'cập nhật' : 'thêm'} người hướng dẫn: ` + err.error);
     }
   } catch (err) {
     alert('Lỗi kết nối máy chủ: ' + err.message);

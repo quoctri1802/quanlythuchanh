@@ -661,6 +661,58 @@ app.post('/api/supervisors', async (req, res) => {
   }
 });
 
+app.put('/api/supervisors/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, dob, gender, email, phone, license_number, specialty, license_date, department } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Find the supervisor and retrieve their user_id
+    const sRes = await client.query('SELECT user_id FROM supervisors WHERE id = $1', [id]);
+    if (sRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người hướng dẫn.' });
+    }
+    const userId = sRes.rows[0].user_id;
+
+    // Update corresponding user record
+    if (userId) {
+      await client.query(
+        `UPDATE users SET name = $1, email = $2, phone = $3 WHERE id = $4`,
+        [name, email && email.trim() !== '' ? email : null, phone && phone.trim() !== '' ? phone : null, userId]
+      );
+    }
+
+    // Update supervisor record
+    const result = await client.query(
+      `UPDATE supervisors 
+       SET name = $1, dob = $2, gender = $3, email = $4, phone = $5, license_number = $6, specialty = $7, license_date = $8, department = $9
+       WHERE id = $10 RETURNING *`,
+      [
+        name,
+        dob && dob.trim() !== '' ? dob : null,
+        gender && gender.trim() !== '' ? gender : null,
+        email && email.trim() !== '' ? email : null,
+        phone && phone.trim() !== '' ? phone : null,
+        license_number,
+        specialty,
+        license_date && license_date.trim() !== '' ? license_date : null,
+        department && department.trim() !== '' ? department : null,
+        id
+      ]
+    );
+
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating supervisor:", err);
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 app.delete('/api/supervisors/:id', async (req, res) => {
   try {
     const sRes = await pool.query('SELECT user_id FROM supervisors WHERE id = $1', [req.params.id]);
