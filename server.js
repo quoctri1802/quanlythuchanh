@@ -350,6 +350,32 @@ async function seedDefaultRotations(client, practitionerId, program, specialty, 
       rotations = [
         { name: 'Dược (24 tháng)', duration: '96 tuần' }
       ];
+    } else if (specialty === 'Điều dưỡng đa khoa') {
+      rotations = [
+        { name: 'Thực hành chuyên khoa Nội – Nhi', duration: '3 tháng' },
+        { name: 'Thực hành chuyên khoa Ngoại', duration: '2 tháng' },
+        { name: 'Thực hành chuyên khoa Hồi sức cấp cứu', duration: '1 tháng' }
+      ];
+    } else if (specialty === 'Điều dưỡng chuyên ngành phụ sản') {
+      rotations = [
+        { name: 'Thực hành chuyên khoa Sản phụ khoa', duration: '5 tháng' },
+        { name: 'Thực hành chuyên khoa Hồi sức cấp cứu', duration: '1 tháng' }
+      ];
+    } else if (specialty === 'Kỹ thuật viên Xét nghiệm') {
+      rotations = [
+        { name: 'Thực hành chuyên khoa Xét nghiệm', duration: '5 tháng' },
+        { name: 'Thực hành chuyên khoa Hồi sức cấp cứu', duration: '1 tháng' }
+      ];
+    } else if (specialty === 'Kỹ thuật viên Hình ảnh Y học') {
+      rotations = [
+        { name: 'Thực hành chuyên khoa Hình ảnh Y học', duration: '5 tháng' },
+        { name: 'Thực hành chuyên khoa Hồi sức cấp cứu', duration: '1 tháng' }
+      ];
+    } else if (specialty === 'Kỹ thuật viên Phục hồi chức năng') {
+      rotations = [
+        { name: 'Thực hành chuyên khoa Vật lý trị liệu – PHCN', duration: '5 tháng' },
+        { name: 'Thực hành chuyên khoa Hồi sức cấp cứu', duration: '1 tháng' }
+      ];
     } else if (['Điều dưỡng', 'Hộ sinh', 'Kỹ thuật y'].includes(specialty)) {
       rotations = [
         { name: 'Thực hành Chuyên môn Chức danh', duration: '5 tháng' },
