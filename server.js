@@ -305,6 +305,21 @@ async function seedDefaultRotations(client, practitionerId, program, specialty, 
         { name: 'Thực hành lâm sàng chuyên khoa Mắt (01 tuần)', duration: '1 tuần' },
         { name: 'Thực hành lâm sàng chuyên khoa Răng hàm mặt (01 tuần)', duration: '1 tuần' }
       ];
+    } else if (specialty === 'Bác sĩ Y học dự phòng') {
+      rotations = [
+        { name: 'Thực hành lâm sàng chuyên khoa Nội (02 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Ngoại (02 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Sản phụ khoa (01 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Nhi (01 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Hồi sức cấp cứu (03 tháng)', duration: '12 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Tai mũi họng (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Mắt (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Da liễu (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Tâm thần (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Xét nghiệm (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Chẩn đoán hình ảnh (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Y học cổ truyền – Phục hồi chức năng (02 tuần)', duration: '2 tuần' }
+      ];
     } else if (specialty === 'Y sĩ') {
       rotations = [
         { name: 'Thực hành Chuyên môn Lâm sàng', duration: '6 tháng' },
