@@ -1601,7 +1601,7 @@ function renderEvaluationsTabContent() {
   container.innerHTML = '';
 
   if (evaluations.length === 0) {
-    container.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-secondary);">Chưa có phiếu đánh giá định kỳ/cuối khóa</td></tr>';
+    container.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-secondary);">Chưa có phiếu đánh giá định kỳ/cuối khóa</td></tr>';
     return;
   }
 
@@ -1631,7 +1631,27 @@ function renderEvaluationsTabContent() {
       <td><span class="badge ${e.result === 'Đạt' ? 'badge-success' : 'badge-danger'}">${e.result}</span></td>
       <td style="max-width:250px; font-size:12.5px;">${e.comment || ''}</td>
       <td style="font-size:12px;">${e.evaluator_name || 'N/A'}<br><small style="color:var(--text-light);">${evalDate}</small></td>
+      <td class="actions-cell">
+        <button class="btn btn-secondary btn-print-eval" style="padding: 4px 8px; font-size: 11.5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+          <i class="fa-solid fa-print"></i> Xem & In
+        </button>
+      </td>
     `;
+
+    tr.querySelector('.btn-print-eval').addEventListener('click', () => {
+      const pContainer = document.getElementById('print-container');
+      const supervisor = state.supervisors.find(s => s.id === e.evaluator_id);
+      const rotation = state.activePractitionerDetail.rotations.find(r => r.name === e.department);
+      
+      pContainer.innerHTML = Templates.generateStageEvaluationForm(
+        state.activePractitionerDetail.practitioner,
+        supervisor,
+        e,
+        rotation
+      );
+      window.print();
+    });
+
     container.appendChild(tr);
   });
 }

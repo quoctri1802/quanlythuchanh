@@ -311,6 +311,143 @@ const Templates = {
             <div class="signer-space" style="height: 60px;"></div>
             <div class="signer-name">${practitioner.name}</div>
           </div>
+  },
+
+  // Phiếu nhận xét quá trình thực hành khám bệnh, chữa bệnh
+  generateStageEvaluationForm(practitioner, supervisor, evaluation, rotation) {
+    const today = new Date();
+    const dob = new Date(practitioner.dob).toLocaleDateString('vi-VN');
+    
+    // Dates for rotation
+    const rStart = rotation && rotation.start_date ? new Date(rotation.start_date).toLocaleDateString('vi-VN') : '..................';
+    const rEnd = rotation && rotation.end_date ? new Date(rotation.end_date).toLocaleDateString('vi-VN') : '..................';
+
+    // Ratings checkboxes rendering
+    const renderRatingRow = (ratingVal) => {
+      const levels = ['Kém', 'Trung bình', 'Khá', 'Tốt', 'Xuất sắc'];
+      return levels.map(level => {
+        const checked = ratingVal === level ? '☑' : '☐';
+        return `<span style="margin-right: 12px; font-family: sans-serif;">${checked} ${level}</span>`;
+      }).join('');
+    };
+
+    const isDat = evaluation.result === 'Đạt' ? '☑ Đạt yêu cầu' : '☐ Đạt yêu cầu';
+    const isKhongDat = evaluation.result !== 'Đạt' ? '☑ Không đạt yêu cầu' : '☐ Không đạt yêu cầu';
+
+    return `
+      <div class="print-certificate" style="font-family: 'Times New Roman', Times, serif; color: #000; padding: 25px; line-height: 1.4; font-size: 14px;">
+        <div class="cert-header" style="display: flex; justify-content: space-between; border-bottom: none; margin-bottom: 20px;">
+          <div class="cert-header-left" style="text-align: center; width: 45%; font-size: 13px;">
+            <div style="font-weight: normal; text-transform: uppercase;">SỞ Y TẾ THÀNH PHỐ ĐÀ NẴNG</div>
+            <div style="font-weight: bold; text-transform: uppercase;">TRUNG TÂM Y TẾ</div>
+            <div style="font-weight: bold; text-transform: uppercase; text-decoration: underline;">KHU VỰC LIÊN CHIỂU</div>
+          </div>
+          <div class="cert-header-right" style="text-align: center; width: 50%; font-size: 13px;">
+            <div style="font-weight: bold; text-transform: uppercase;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+            <div style="font-weight: bold;">Độc lập - Tự do - Hạnh phúc</div>
+            <div style="margin-top: 5px; font-style: italic;">Hòa Khánh, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}</div>
+          </div>
+        </div>
+
+        <div style="text-align: center; font-weight: bold; font-size: 16px; margin: 25px 0; text-transform: uppercase;">
+          PHIẾU NHẬN XÉT QUÁ TRÌNH THỰC HÀNH KHÁM BỆNH, CHỮA BỆNH
+        </div>
+
+        <div class="cert-body">
+          <div style="font-weight: bold; margin-bottom: 6px;">1. Người hướng dẫn thực hành</div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 14px;">
+            <tr>
+              <td style="padding: 3px 0; width: 50%;"> Họ và tên: <strong>${supervisor ? supervisor.name : '................................................'}</strong></td>
+              <td style="padding: 3px 0; width: 50%;">Số chứng chỉ hành nghề KBCB: <strong>${supervisor ? supervisor.license_number : '....................................'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0;" colspan="2"> Phạm vi hoạt động chuyên môn: <strong>${supervisor ? supervisor.specialty : '....................................................................................................'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0;" colspan="2"> Khoa, đơn vị làm việc: <strong>${supervisor ? (supervisor.department || 'Trung tâm Y tế quận Liên Chiểu') : '....................................................................................................'}</strong></td>
+            </tr>
+          </table>
+
+          <div style="font-weight: bold; margin-bottom: 6px; margin-top: 15px;">2. Người thực hành</div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px;">
+            <tr>
+              <td style="padding: 3px 0; width: 60%;"> Họ và tên: <strong>${practitioner.name.toUpperCase()}</strong></td>
+              <td style="padding: 3px 0; width: 40%;">Ngày, tháng, năm sinh: <strong>${dob}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0;" colspan="2"> Số CMND/Thẻ căn cước: <strong>.........................................................................................................................................</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0;" colspan="2"> Thời gian thực hành: Từ ngày <strong>${rStart}</strong> đến ngày <strong>${rEnd}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0;" colspan="2"> Chuyên khoa đăng ký thực hành: <strong>Khám bệnh, chữa bệnh chuyên khoa ${practitioner.specialty}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0;" colspan="2"> Địa điểm thực hành: <strong>Trung tâm Y tế quận Liên Chiểu</strong></td>
+            </tr>
+          </table>
+
+          <div style="font-weight: bold; margin-bottom: 6px; margin-top: 15px;">3. Kết quả thực hành</div>
+          
+          <div style="font-weight: bold; margin-left: 10px; margin-bottom: 6px;">3.1. Năng lực thực hành chuyên khoa:</div>
+          <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 15px; font-size: 13px;">
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px; width: 35%; font-weight: bold;">Tiêu chí đánh giá</td>
+              <td style="border: 1px solid #000; padding: 6px; text-align: left; font-weight: bold;">Kết quả nhận xét</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px;">1. Kiến thức chuyên môn</td>
+              <td style="border: 1px solid #000; padding: 6px;">${renderRatingRow(evaluation.rating_knowledge)}</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px;">2. Kỹ năng chuyên môn</td>
+              <td style="border: 1px solid #000; padding: 6px;">${renderRatingRow(evaluation.rating_skills)}</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px;">3. Kinh nghiệm thực tiễn</td>
+              <td style="border: 1px solid #000; padding: 6px;">${renderRatingRow(evaluation.rating_experience)}</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px;">4. Khả năng học hỏi, phát triển</td>
+              <td style="border: 1px solid #000; padding: 6px;">${renderRatingRow(evaluation.rating_growth)}</td>
+            </tr>
+          </table>
+
+          <div style="font-weight: bold; margin-left: 10px; margin-bottom: 6px; margin-top: 15px;">3.2. Ý thức, tổ chức kỷ luật trong thời gian thực hành:</div>
+          <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 15px; font-size: 13px;">
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px; width: 35%; font-weight: bold;">Tiêu chí đánh giá</td>
+              <td style="border: 1px solid #000; padding: 6px; text-align: left; font-weight: bold;">Kết quả nhận xét</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px;">1. Tinh thần, thái độ đối với công việc được giao</td>
+              <td style="border: 1px solid #000; padding: 6px;">${renderRatingRow(evaluation.rating_attitude)}</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #000; padding: 6px;">2. Đảm bảo kỷ luật</td>
+              <td style="border: 1px solid #000; padding: 6px;">${renderRatingRow(evaluation.rating_discipline)}</td>
+            </tr>
+          </table>
+
+          <div style="margin-top: 15px; margin-bottom: 15px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">3.3. Nhận xét chung:</div>
+            <div style="border-bottom: 1px dashed #333; padding: 3px 0; min-height: 24px; text-indent: 10px;">${evaluation.comment || '................................................................................................................................'}</div>
+          </div>
+
+          <div style="margin-top: 15px; margin-bottom: 25px; display: flex; align-items: center;">
+            <span style="font-weight: bold; margin-right: 25px;">3.4. Kết luận:</span>
+            <span style="margin-right: 35px; font-weight: bold; font-family: sans-serif;">${isDat}</span>
+            <span style="font-weight: bold; font-family: sans-serif;">${isKhongDat}</span>
+          </div>
+        </div>
+
+        <div class="cert-footer" style="display: flex; justify-content: flex-end; margin-top: 30px;">
+          <div class="cert-footer-right" style="text-align: center; width: 50%;">
+            <div style="font-weight: bold; text-transform: uppercase;">NGƯỜI HƯỚNG DẪN</div>
+            <div style="font-style: italic; font-size: 12px; margin-bottom: 60px;">(Ký, ghi rõ họ tên)</div>
+            <div style="font-weight: bold; font-size: 14px;">${supervisor ? supervisor.name : ''}</div>
+          </div>
         </div>
       </div>
     `;
