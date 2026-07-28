@@ -1206,7 +1206,7 @@ function renderTimelineTabContent() {
     return;
   }
 
-  rotations.forEach((rot) => {
+  rotations.forEach((rot, index) => {
     const isCompleted = rot.status === 'Đã hoàn thành';
     const isActive = rot.status === 'Đang thực hành';
     
@@ -1218,8 +1218,12 @@ function renderTimelineTabContent() {
 
     let editButtons = '';
     if (isManager) {
+      const isFirst = index === 0;
+      const isLast = index === rotations.length - 1;
       editButtons = `
-        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end;">
+        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+          ${!isFirst ? `<button class="btn btn-secondary btn-move-up" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-up"></i> Lên</button>` : ''}
+          ${!isLast ? `<button class="btn btn-secondary btn-move-down" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-down"></i> Xuống</button>` : ''}
           <button class="btn btn-secondary btn-edit-rot" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-pen"></i> Sửa</button>
           <button class="btn btn-secondary btn-del-rot" style="padding: 2px 6px; font-size: 11px; color: var(--danger);"><i class="fas fa-trash"></i> Xóa</button>
         </div>
@@ -1263,10 +1267,43 @@ function renderTimelineTabContent() {
           }
         }
       });
+      div.querySelector('.btn-move-up')?.addEventListener('click', async () => {
+        const newOrder = rotations.map(r => r.id);
+        const temp = newOrder[index];
+        newOrder[index] = newOrder[index - 1];
+        newOrder[index - 1] = temp;
+        await reorderRotations(newOrder);
+      });
+      div.querySelector('.btn-move-down')?.addEventListener('click', async () => {
+        const newOrder = rotations.map(r => r.id);
+        const temp = newOrder[index];
+        newOrder[index] = newOrder[index + 1];
+        newOrder[index + 1] = temp;
+        await reorderRotations(newOrder);
+      });
     }
 
     container.appendChild(div);
   });
+}
+
+async function reorderRotations(rotationIds) {
+  try {
+    const res = await fetch('/api/rotations/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rotationIds })
+    });
+    if (res.ok) {
+      await refreshActivePractitionerDetail();
+      renderTimelineTabContent();
+    } else {
+      const err = await res.json();
+      alert('Lỗi sắp xếp: ' + err.error);
+    }
+  } catch (err) {
+    alert('Lỗi kết nối: ' + err.message);
+  }
 }
 
 let rotationIdToEdit = null;

@@ -233,13 +233,62 @@ initializeDatabase().then(() => {
   console.error('Failed to initialize database, server not started:', err);
 });
 
+async function recalculateRotationDates(client, practitionerId) {
+  // Fetch practitioner's start_date
+  const pRes = await client.query('SELECT start_date FROM practitioners WHERE id = $1', [practitionerId]);
+  if (pRes.rows.length === 0) return;
+  const startDateVal = pRes.rows[0].start_date;
+  if (!startDateVal) return;
+
+  // Fetch all rotations ordered by order_index
+  const rRes = await client.query(
+    'SELECT id, duration FROM practitioner_rotations WHERE practitioner_id = $1 ORDER BY order_index ASC',
+    [practitionerId]
+  );
+  
+  let currentDate = new Date(startDateVal);
+  for (let i = 0; i < rRes.rows.length; i++) {
+    const rot = rRes.rows[i];
+    const sDate = new Date(currentDate);
+    const eDate = new Date(currentDate);
+    
+    // Check if duration contains 'tuần' or 'week' or 't'
+    const durationLower = rot.duration.toLowerCase();
+    if (durationLower.includes('tuần') || durationLower.includes('week') || durationLower.includes('t')) {
+      const weeks = parseInt(rot.duration);
+      eDate.setDate(eDate.getDate() + (weeks * 7));
+    } else {
+      const months = parseInt(rot.duration);
+      eDate.setMonth(eDate.getMonth() + months);
+    }
+    
+    await client.query(
+      'UPDATE practitioner_rotations SET start_date = $1, end_date = $2, order_index = $3 WHERE id = $4',
+      [sDate, eDate, i, rot.id]
+    );
+    
+    currentDate = eDate;
+  }
+}
+
 async function seedDefaultRotations(client, practitionerId, program, specialty, startDateStr, supervisorId) {
   let rotations = [];
   if (program === 'ND96') {
     if (specialty === 'Bác sĩ') {
       rotations = [
-        { name: 'Thực hành Chuyên môn Lâm sàng', duration: '9 tháng' },
-        { name: 'Thực hành Hồi sức Cấp cứu', duration: '3 tháng' }
+        { name: 'Thực hành lâm sàng chuyên khoa Nội (02 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Ngoại (02 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Sản phụ khoa (01 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Nhi (01 tháng)', duration: '8 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Hồi sức cấp cứu (03 tháng)', duration: '12 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Tai mũi họng (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Mắt (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Da liễu (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Tâm thần (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Xét nghiệm (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Chẩn đoán hình ảnh (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Y học cổ truyền – Phục hồi chức năng (02 tuần)', duration: '2 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Răng hàm mặt', duration: '1 tuần' }
       ];
     } else if (specialty === 'Y sĩ') {
       rotations = [
@@ -270,32 +319,23 @@ async function seedDefaultRotations(client, practitionerId, program, specialty, 
     ];
   }
 
-  let currentDate = new Date(startDateStr);
   for (let i = 0; i < rotations.length; i++) {
     const rot = rotations[i];
-    const months = parseInt(rot.duration);
-    
-    const sDate = new Date(currentDate);
-    const eDate = new Date(currentDate);
-    eDate.setMonth(eDate.getMonth() + months);
-
     await client.query(
-      `INSERT INTO practitioner_rotations (practitioner_id, name, duration, start_date, end_date, status, order_index, supervisor_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `INSERT INTO practitioner_rotations (practitioner_id, name, duration, status, order_index, supervisor_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         practitionerId,
         rot.name,
         rot.duration,
-        sDate,
-        eDate,
         i === 0 ? 'Đang thực hành' : 'Chờ xoay khoa',
         i,
         supervisorId || null
       ]
     );
-
-    currentDate = eDate;
   }
+
+  await recalculateRotationDates(client, practitionerId);
 }
 
 // ==========================================
@@ -555,16 +595,23 @@ app.post('/api/practitioners', async (req, res) => {
 
 app.put('/api/practitioners/:id', async (req, res) => {
   const { name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, status, profile_status, rejection_reason, avatar_url, degree_scan_url } = req.body;
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+    const result = await client.query(
       `UPDATE practitioners 
        SET name=$1, dob=$2, gender=$3, email=$4, phone=$5, degree=$6, specialty=$7, program=$8, start_date=$9, supervisor_id=$10, status=$11, profile_status=$12, rejection_reason=$13, avatar_url=COALESCE($14, avatar_url), degree_scan_url=COALESCE($15, degree_scan_url)
        WHERE id=$16 RETURNING *`,
       [name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, status, profile_status, rejection_reason, avatar_url, degree_scan_url, req.params.id]
     );
+    await recalculateRotationDates(client, req.params.id);
+    await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -684,42 +731,113 @@ app.get('/api/practitioners/:id/rotations', async (req, res) => {
 
 // Add a rotation stage for a trainee
 app.post('/api/practitioners/:id/rotations', async (req, res) => {
-  const { name, duration, start_date, end_date, status, order_index, supervisor_id } = req.body;
+  const { name, duration, status, supervisor_id } = req.body;
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
-      `INSERT INTO practitioner_rotations (practitioner_id, name, duration, start_date, end_date, status, order_index, supervisor_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [req.params.id, name, duration, start_date || null, end_date || null, status || 'Chờ xoay khoa', order_index || 0, supervisor_id || null]
+    await client.query('BEGIN');
+    const maxRes = await client.query('SELECT COALESCE(MAX(order_index), -1) as max_idx FROM practitioner_rotations WHERE practitioner_id = $1', [req.params.id]);
+    const nextIdx = maxRes.rows[0].max_idx + 1;
+
+    const result = await client.query(
+      `INSERT INTO practitioner_rotations (practitioner_id, name, duration, status, order_index, supervisor_id)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [req.params.id, name, duration, status || 'Chờ xoay khoa', nextIdx, supervisor_id || null]
     );
+    await recalculateRotationDates(client, req.params.id);
+    await client.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
 // Update a rotation stage
 app.put('/api/rotations/:id', async (req, res) => {
-  const { name, duration, start_date, end_date, status, order_index, supervisor_id } = req.body;
+  const { name, duration, status, supervisor_id } = req.body;
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+    const rRes = await client.query('SELECT practitioner_id FROM practitioner_rotations WHERE id = $1', [req.params.id]);
+    if (rRes.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ error: 'Rotation not found' });
+    }
+    const practitionerId = rRes.rows[0].practitioner_id;
+
+    const result = await client.query(
       `UPDATE practitioner_rotations
-       SET name=$1, duration=$2, start_date=$3, end_date=$4, status=$5, order_index=$6, supervisor_id=$7
-       WHERE id=$8 RETURNING *`,
-      [name, duration, start_date || null, end_date || null, status || 'Chờ xoay khoa', order_index || 0, supervisor_id || null, req.params.id]
+       SET name=$1, duration=$2, status=$3, supervisor_id=$4
+       WHERE id=$5 RETURNING *`,
+      [name, duration, status || 'Chờ xoay khoa', supervisor_id || null, req.params.id]
     );
+    await recalculateRotationDates(client, practitionerId);
+    await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
 // Delete a rotation stage
 app.delete('/api/rotations/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
-    await pool.query('DELETE FROM practitioner_rotations WHERE id = $1', [req.params.id]);
+    await client.query('BEGIN');
+    const rRes = await client.query('SELECT practitioner_id FROM practitioner_rotations WHERE id = $1', [req.params.id]);
+    if (rRes.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ error: 'Rotation not found' });
+    }
+    const practitionerId = rRes.rows[0].practitioner_id;
+
+    await client.query('DELETE FROM practitioner_rotations WHERE id = $1', [req.params.id]);
+    await recalculateRotationDates(client, practitionerId);
+    await client.query('COMMIT');
     res.json({ message: 'Rotation stage deleted successfully' });
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Reorder rotations
+app.post('/api/rotations/reorder', async (req, res) => {
+  const { rotationIds } = req.body;
+  if (!rotationIds || !Array.isArray(rotationIds) || rotationIds.length === 0) {
+    return res.status(400).json({ error: 'Danh sách ID không hợp lệ' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const rRes = await client.query('SELECT practitioner_id FROM practitioner_rotations WHERE id = $1', [rotationIds[0]]);
+    if (rRes.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ error: 'Rotation not found' });
+    }
+    const practitionerId = rRes.rows[0].practitioner_id;
+
+    for (let i = 0; i < rotationIds.length; i++) {
+      await client.query(
+        'UPDATE practitioner_rotations SET order_index = $1 WHERE id = $2 AND practitioner_id = $3',
+        [i, rotationIds[i], practitionerId]
+      );
+    }
+    await recalculateRotationDates(client, practitionerId);
+    await client.query('COMMIT');
+    res.json({ message: 'Sắp xếp thứ tự xoay khoa thành công!' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
