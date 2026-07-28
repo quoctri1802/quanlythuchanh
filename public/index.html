@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QLHN - Hệ Thống Quản Lý Thực Hành Cấp Giấy Phép Hành Nghề TTYT Liên Chiểu</title>
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css?v=2.0.3">
+</head>
+<body>
+
+  <!-- VIEW 0: LOGIN VIEW (Shown if not authenticated) -->
+  <div id="view-login" class="login-container" style="display: flex;">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="logo.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 16px;">
+        <h2>QLHN Portal</h2>
+        <p>TRUNG TÂM Y TẾ KHU VỰC LIÊN CHIỂU</p>
+      </div>
+      <form id="form-login">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="login-username">Tên đăng nhập</label>
+          <input type="text" id="login-username" required placeholder="Nhập tài khoản (Ví dụ: daotao)">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="login-password">Mật khẩu</label>
+          <input type="password" id="login-password" required placeholder="Nhập mật khẩu">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700;">
+          ĐĂNG NHẬP
+        </button>
+      </form>
+      <div id="login-error-msg" style="color: var(--danger); font-size: 13.5px; text-align: center; margin-top: 12px; display: none;"></div>
+      <div class="login-footer">
+        <small style="color: var(--text-light);">Vui lòng liên hệ Phòng CNTT để cấp mới hoặc khôi phục tài khoản.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION CONTAINER (Hidden if not authenticated) -->
+  <div class="app-container" id="app-main-layout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="logo.png" alt="Logo" style="width: 40px; height: 40px; object-fit: contain; border-radius: 50%; border: 1px solid var(--border-color); background: white;">
+        <div>
+          <span class="brand-name">QLHN Portal</span>
+          <div class="brand-sub">TTYT LIÊN CHIỂU</div>
+        </div>
+      </div>
+      
+      <ul class="menu-list" id="sidebar-menu">
+        <!-- Menu items populated dynamically by role -->
+      </ul>
+
+      <div class="sidebar-footer">
+        <button class="theme-toggle-btn" id="theme-toggle" title="Chuyển chế độ Sáng/Tối">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="theme-toggle-btn" id="btn-open-change-password" title="Đổi mật khẩu">
+          <i class="fa-solid fa-key"></i>
+        </button>
+        <button class="theme-toggle-btn" id="btn-logout" title="Đăng xuất" style="color: var(--danger);">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Bar / Header -->
+      <header class="top-header">
+        <div class="page-title">
+          <h1 id="header-title">Hệ Thống Quản Lý Thực Hành Lâm Sàng</h1>
+          <p id="header-subtitle">Trung tâm Y tế khu vực Liên Chiểu - Đà Nẵng</p>
+        </div>
+        <div class="user-profile" id="user-profile-widget">
+          <!-- Profile avatar name -->
+        </div>
+      </header>
+
+      <!-- VIEW A: NOTIFICATIONS SUMMARY -->
+      <div class="notifications-panel" id="notifications-widget" style="display: none;">
+        <div class="card-header" style="margin-bottom: 12px;">
+          <h4 style="font-size: 14px; color: var(--primary); display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-bell"></i> Thông báo & Cảnh báo từ hệ thống
+          </h4>
+          <button class="btn btn-secondary" id="btn-read-all-notifications" style="padding: 4px 8px; font-size:11px;">Đánh dấu đã đọc</button>
+        </div>
+        <div id="notifications-feed-list">
+          <!-- Notification items -->
+        </div>
+      </div>
+
+      <!-- VIEW 1: DASHBOARD OVERVIEW -->
+      <section id="view-dashboard" class="view-panel" style="display: none;">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <span>Đang thực hành</span>
+              <div class="stat-icon" style="background-color: var(--primary-light); color: var(--primary);">
+                <i class="fa-solid fa-user-clock"></i>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-active">0</div>
+            <span class="stat-label">Hồ sơ hoạt động</span>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span>Hoàn thành (Đủ điều kiện)</span>
+              <div class="stat-icon" style="background-color: var(--success-light); color: var(--success);">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-completed">0</div>
+            <span class="stat-label">Đang chờ xác nhận</span>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span>Hồ sơ mới chờ duyệt</span>
+              <div class="stat-icon" style="background-color: var(--warning-light); color: var(--warning);">
+                <i class="fa-solid fa-folder-open"></i>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-pending">0</div>
+            <span class="stat-label">Cần Phòng Đào tạo duyệt</span>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span>Tổng số học viên</span>
+              <div class="stat-icon" style="background-color: rgba(2, 132, 199, 0.1); color: var(--secondary);">
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-total">0</div>
+            <span class="stat-label">Lũy kế Liên Chiểu</span>
+          </div>
+        </div>
+
+        <div class="dashboard-details-grid">
+          <!-- Left card: Chart of specialties -->
+          <div class="details-card">
+            <div class="card-header">
+              <h3>Báo cáo Phân bổ Học viên theo Khoa/Phòng (Module E.01)</h3>
+              <button class="btn btn-secondary" id="btn-export-e01" style="padding:4px 8px; font-size:12px;"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+            </div>
+            <div class="chart-container" id="dashboard-specialty-chart">
+              <!-- Dynamically populated bars -->
+            </div>
+          </div>
+
+          <!-- Right card: Program distributions -->
+          <div class="details-card">
+            <div class="card-header">
+              <h3>Chương trình Pháp lý (Module E.02)</h3>
+              <button class="btn btn-secondary" id="btn-export-e02" style="padding:4px 8px; font-size:12px;"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+            </div>
+            <div class="specialty-list" id="dashboard-program-list">
+              <!-- Dynamically populated list -->
+            </div>
+            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color); font-size: 11px; color: var(--text-secondary);">
+              <i class="fa-solid fa-circle-info" style="margin-right: 4px; color: var(--primary);"></i>
+              Cơ sở TTYT Liên Chiểu tuân thủ quy chuẩn thời gian thực hành 12-9-6 tháng theo <strong>Nghị định 96/2023/NĐ-CP</strong>.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: PRACTITIONERS MANAGEMENT -->
+      <section id="view-practitioners" class="view-panel" style="display: none;">
+        <div class="filter-bar">
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div class="search-input-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="prac-search" placeholder="Tìm theo tên học viên, bằng cấp...">
+            </div>
+            <select id="prac-specialty-filter">
+              <option value="ALL">-- Tất cả chuyên ngành --</option>
+              <option value="Bác sĩ">Bác sĩ</option>
+              <option value="Y sĩ">Y sĩ</option>
+              <option value="Điều dưỡng">Điều dưỡng</option>
+              <option value="Hộ sinh">Hộ sinh</option>
+              <option value="Kỹ thuật y">Kỹ thuật y</option>
+              <option value="Dinh dưỡng lâm sàng">Dinh dưỡng lâm sàng</option>
+              <option value="Cấp cứu viên ngoại viện">Cấp cứu viên ngoại viện</option>
+              <option value="Tâm lý lâm sàng">Tâm lý lâm sàng</option>
+            </select>
+            <select id="prac-status-filter">
+              <option value="ALL">-- Tất cả trạng thái --</option>
+              <option value="Đang thực hành">Đang thực hành</option>
+              <option value="Đã hoàn thành">Đã hoàn thành</option>
+              <option value="Tạm ngưng">Tạm ngưng</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="btn-register-practitioner">
+            <i class="fa-solid fa-user-plus"></i> Tiếp nhận Học viên (A.02)
+          </button>
+        </div>
+
+        <div class="details-card">
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Học viên / Bằng cấp</th>
+                  <th>Chức danh đăng ký</th>
+                  <th>Chương trình</th>
+                  <th>Người hướng dẫn</th>
+                  <th>Duyệt hồ sơ (A.03)</th>
+                  <th>Lâm sàng / Thi NL</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="practitioners-list-container">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: SUPERVISORS MANAGEMENT -->
+      <section id="view-supervisors" class="view-panel" style="display: none;">
+        <div class="filter-bar">
+          <div style="font-weight: 500; color: var(--text-secondary);">
+            Danh sách bác sĩ/điều dưỡng hướng dẫn lâm sàng đủ điều kiện
+          </div>
+          <button class="btn btn-primary" id="btn-add-supervisor">
+            <i class="fa-solid fa-plus"></i> Thêm Người hướng dẫn (A.04)
+          </button>
+        </div>
+
+        <div class="details-card">
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Họ và Tên</th>
+                  <th>Chuyên môn hành nghề</th>
+                  <th>Khoa làm việc</th>
+                  <th>Số Giấy phép (CCHN)</th>
+                  <th>Ngày cấp phép</th>
+                  <th>Kinh nghiệm hướng dẫn</th>
+                  <th>Đang kèm cặp</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="supervisors-list-container">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: PRACTITIONER DETAIL / PROFILE -->
+      <section id="view-detail" class="view-panel" style="display: none;">
+        <div class="detail-grid">
+          <!-- Left side: Profile Card -->
+          <div>
+            <div class="profile-card">
+              <div class="profile-avatar-container">
+                <div class="profile-avatar" id="det-avatar">
+                  <span id="det-avatar-char">A</span>
+                </div>
+              </div>
+              <div>
+                <h2 class="profile-name" id="det-name">Nguyễn Hoàng Nam</h2>
+                <div style="color: var(--text-secondary); margin-top: 4px; font-size:13px;" id="det-degree">Bác sĩ y khoa</div>
+              </div>
+              
+              <ul class="profile-meta-list">
+                <li class="profile-meta-item">
+                  <span class="profile-meta-label">Phạm vi chuyên môn</span>
+                  <span class="profile-meta-value" id="det-specialty">Bác sĩ</span>
+                </li>
+                <li class="profile-meta-item">
+                  <span class="profile-meta-label">Ngày sinh</span>
+                  <span class="profile-meta-value" id="det-dob">15/02/2001</span>
+                </li>
+                <li class="profile-meta-item">
+                  <span class="profile-meta-label">Hồ sơ tuyển dụng</span>
+                  <span class="profile-meta-value" id="det-profile-status">Đang duyệt</span>
+                </li>
+                <li class="profile-meta-item">
+                  <span class="profile-meta-label">Bắt đầu thực hành</span>
+                  <span class="profile-meta-value" id="det-start-date">01/08/2025</span>
+                </li>
+                <li class="profile-meta-item">
+                  <span class="profile-meta-label">Khung pháp lý</span>
+                  <span class="profile-meta-value" id="det-program">NĐ 96/2023/NĐ-CP</span>
+                </li>
+                <li class="profile-meta-item">
+                  <span class="profile-meta-label">Bác sĩ hướng dẫn</span>
+                  <span class="profile-meta-value" id="det-supervisor" style="color: var(--primary); font-weight:700;">BS. Nguyễn Văn Hùng</span>
+                </li>
+              </ul>
+              
+              <div id="det-rejection-box" style="display:none; background-color:var(--danger-light); color:var(--danger); font-size:12px; padding:10px; border-radius:var(--radius-md); width:100%; border:1px solid var(--danger);">
+                <strong>Yêu cầu chỉnh sửa hồ sơ:</strong> <span id="det-rejection-reason">Lý do...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right side: Tabbed details -->
+          <div class="details-card" style="padding: 20px;">
+            <div class="tab-menu" id="detail-tab-menu">
+              <button class="tab-btn active" data-tab="tab-timeline">Lộ trình xoay khoa</button>
+              <button class="tab-btn" data-tab="tab-logs">Nhật ký lâm sàng hằng ngày (B.01)</button>
+              <button class="tab-btn" data-tab="tab-evaluations">Đánh giá chuyên môn (C.01)</button>
+              <button class="tab-btn" data-tab="tab-training">Đào tạo bổ trợ (20 buổi)</button>
+              <button class="tab-btn" data-tab="tab-certificate">Cấp Giấy phép & Hồ sơ (Module D)</button>
+            </div>
+
+            <!-- Tab 1: Timeline -->
+            <div class="tab-content active" id="tab-timeline">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="margin:0;">Phân bổ luân khoa thực hành quy định</h4>
+                <div id="timeline-actions-manager" style="display: none; gap: 8px;">
+                  <button class="btn btn-secondary" id="btn-reset-timeline" style="padding: 4px 8px; font-size: 12px;"><i class="fa-solid fa-rotate-left"></i> Đặt lại mặc định</button>
+                  <button class="btn btn-primary" id="btn-add-timeline-stage" style="padding: 4px 8px; font-size: 12px;"><i class="fa-solid fa-plus"></i> Thêm giai đoạn</button>
+                </div>
+              </div>
+              <div class="timeline" id="timeline-container">
+                <!-- Timeline items -->
+              </div>
+            </div>
+
+            <!-- Tab 2: Daily Clinical Logs -->
+            <div class="tab-content" id="tab-logs">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin:0;">Nhật ký ca bệnh & kỹ thuật thực hành lâm sàng hằng ngày</h4>
+                <button class="btn btn-primary" id="btn-add-log" style="padding: 6px 12px; font-size:12.5px;">
+                  <i class="fa-solid fa-pen-nib"></i> Ghi nhận ca bệnh lâm sàng
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="custom-table" style="font-size: 13px;">
+                  <thead>
+                    <tr>
+                      <th>Ngày thực hành</th>
+                      <th>Khoa lâm sàng</th>
+                      <th>Mô tả hoạt động lâm sàng / Ca bệnh</th>
+                      <th>Thủ thuật kỹ thuật / Số lượng</th>
+                      <th>Xác nhận (B.02)</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="logs-list-container">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab 3: Evaluations -->
+            <div class="tab-content" id="tab-evaluations">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin:0;">Phiếu đánh giá định kỳ hàng tháng và Đánh giá cuối khóa</h4>
+                <button class="btn btn-primary" id="btn-add-evaluation" style="padding: 6px 12px; font-size:12.5px;">
+                  <i class="fa-solid fa-file-signature"></i> Lập phiếu đánh giá
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Loại đánh giá / Khoa</th>
+                      <th>5 Tiêu chí quy chuẩn</th>
+                      <th>Kết quả</th>
+                      <th>Nhận xét năng lực & y đức</th>
+                      <th>Bác sĩ đánh giá</th>
+                    </tr>
+                  </thead>
+                  <tbody id="evaluations-list-container">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab 4: Supplemental Training -->
+            <div class="tab-content" id="tab-training">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin:0;">Đào tạo bổ trợ lý thuyết bắt buộc về y đức, y pháp, an toàn người bệnh</h4>
+                <button class="btn btn-primary" id="btn-add-training" style="padding: 6px 12px; font-size:12.5px;">
+                  <i class="fa-solid fa-graduation-cap"></i> Ghi nhận lớp bổ trợ
+                </button>
+              </div>
+              
+              <div class="training-summary">
+                <div class="training-progress-box">
+                  <div class="training-number" id="train-completed-count">0</div>
+                  <div class="training-label">Số buổi đã học</div>
+                </div>
+                <div class="training-progress-box">
+                  <div class="training-number" id="train-target-count">20</div>
+                  <div class="training-label">Lớp quy chuẩn bắt buộc</div>
+                </div>
+                <div style="flex: 2; background-color: var(--bg-primary); padding: 12px; border-radius: var(--radius-md); display:flex; flex-direction:column; justify-content:center; gap:8px;">
+                  <div style="display:flex; justify-content:space-between; font-size:11.5px; font-weight:600;">
+                    <span>Tiến độ hoàn thành</span>
+                    <span id="train-percent-text">0%</span>
+                  </div>
+                  <div style="width: 100%; height: 8px; background-color: var(--border-color); border-radius: var(--radius-full); overflow: hidden;">
+                    <div id="train-progress-bar" style="width: 0%; height: 100%; background-color: var(--primary); border-radius: var(--radius-full); transition: width 0.3s ease;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="custom-table" style="font-size:13px;">
+                  <thead>
+                    <tr>
+                      <th>Ngày giảng</th>
+                      <th>Nội dung bài học lý thuyết y khoa</th>
+                      <th>Số giờ học</th>
+                      <th>Báo cáo viên</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="training-list-container">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab 5: Complete & Certify -->
+            <div class="tab-content" id="tab-certificate">
+              <h4 style="margin-bottom: 12px;">Thẩm định Điều kiện Cấp phép Hành nghề tự động (Module D.01)</h4>
+              <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                Dưới đây là bảng thẩm tra tự động các tiêu chuẩn pháp lý bắt buộc theo Luật khám chữa bệnh 2023 đối với học viên thực hành.
+              </p>
+
+              <div id="cert-checklist" style="display:flex; flex-direction:column; gap:10px; margin-bottom: 20px;">
+                <!-- Checklist items -->
+              </div>
+
+              <!-- Competency national test result box -->
+              <div class="details-card" style="background-color: var(--bg-primary); border-color: var(--border-color); margin-bottom: 20px; padding: 16px;">
+                <div class="card-header" style="margin-bottom: 10px;">
+                  <h4 style="font-size:13.5px;"><i class="fa-solid fa-pen-clip"></i> Đánh giá Năng lực Hành nghề (Điều 26 Luật 2023)</h4>
+                  <span class="badge" id="det-test-badge">Chưa thi</span>
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary);" id="det-test-info">
+                  Chưa ghi nhận kết quả thi năng lực y khoa quốc gia.
+                </div>
+                <div style="margin-top: 12px; display:flex; gap:8px;" id="manager-test-controls">
+                  <!-- Button to update exam score visible only to manager -->
+                </div>
+              </div>
+
+              <div style="display:flex; gap:12px; justify-content: center; flex-wrap: wrap;">
+                <button class="btn btn-secondary" id="btn-print-certificate" disabled>
+                  <i class="fa-solid fa-print"></i> In Giấy xác nhận (Mẫu 07)
+                </button>
+                <button class="btn btn-secondary" id="btn-print-appform" disabled>
+                  <i class="fa-solid fa-print"></i> In Đơn đề nghị (Mẫu 08)
+                </button>
+                <button class="btn btn-secondary" id="btn-export-zip" disabled>
+                  <i class="fa-solid fa-file-zipper"></i> Đóng gói & Xuất bộ hồ sơ (ZIP)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: NATIONAL EXAMS MANAGEMENT -->
+      <section id="view-national-exams" class="view-panel" style="display: none;">
+        <div class="filter-bar">
+          <div style="font-weight: 500; color: var(--text-secondary);">
+            Quản lý kỳ thi kiểm tra đánh giá năng lực hành nghề theo Luật khám bệnh, chữa bệnh 2023
+          </div>
+        </div>
+
+        <div class="details-card">
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Học viên dự thi</th>
+                  <th>Chức danh y khoa</th>
+                  <th>Kỳ thi gần nhất</th>
+                  <th>Điểm số lâm sàng</th>
+                  <th>Kết quả thi năng lực</th>
+                  <th>Thao tác cập nhật</th>
+                </tr>
+              </thead>
+              <tbody id="exams-list-container">
+                <!-- Exam lists dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 6: SYSTEM ADMIN PANEL -->
+      <section id="view-system-admin" class="view-panel" style="display: none;">
+        <div class="details-card" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <h3>Cấu hình tham số kiểm soát y tế</h3>
+            <i class="fa-solid fa-sliders" style="color: var(--primary);"></i>
+          </div>
+          <div class="modal-body" style="padding:0;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfg-late-alert">Số ngày không cập nhật nhật ký để kích hoạt cảnh báo *</label>
+                <input type="number" id="cfg-late-alert" value="3" min="1" max="15">
+              </div>
+              <div class="form-group">
+                <label for="cfg-min-hours">Số giờ học lý thuyết bổ trợ bắt buộc tối thiểu *</label>
+                <input type="number" id="cfg-min-hours" value="40" min="10" max="100">
+              </div>
+            </div>
+            <div style="margin-top: 14px;">
+              <button class="btn btn-primary" id="btn-save-sys-config">Lưu cấu hình hệ thống</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-card">
+          <div class="card-header">
+            <h3>Quản lý Sao lưu & Phục hồi cơ sở dữ liệu (Database Backup)</h3>
+            <i class="fa-solid fa-database" style="color: var(--primary);"></i>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+            Thực hiện sao lưu toàn bộ các bảng dữ liệu thực hành y khoa tại Neon Cloud PostgreSQL hoặc khôi phục dữ liệu về trạng thái sao lưu gần nhất.
+          </p>
+          <div style="display:flex; gap:12px;">
+            <button class="btn btn-primary" id="btn-sys-backup">
+              <i class="fa-solid fa-download"></i> Tạo Bản Sao Lưu Mới
+            </button>
+            <button class="btn btn-secondary" id="btn-sys-restore">
+              <i class="fa-solid fa-upload"></i> Khôi Phục Dữ Liệu Gần Nhất
+            </button>
+          </div>
+          <div id="backup-status-text" style="margin-top: 12px; font-size:12px; font-weight:600; color:var(--text-secondary);">
+            Chưa tạo bản sao lưu nào trong phiên hoạt động hiện tại.
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 7: DEPARTMENTS MANAGEMENT -->
+      <section id="view-departments" class="view-panel" style="display: none;">
+        <div class="filter-bar">
+          <div style="font-weight: 500; color: var(--text-secondary);">
+            Quản lý danh sách Khoa, Phòng lâm sàng và chuyên môn tại Trung tâm Y tế
+          </div>
+        </div>
+
+        <div class="dashboard-details-grid" style="grid-template-columns: 1fr 2fr; gap: 20px; display: grid;">
+          <!-- Left: Add Department Form -->
+          <div class="details-card">
+            <div class="card-header">
+              <h3>Thêm Khoa/Phòng mới</h3>
+            </div>
+            <form id="form-add-department" style="padding: 16px;">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="dept-name">Tên Khoa / Phòng *</label>
+                <input type="text" id="dept-name" required placeholder="Ví dụ: Khoa Ngoại chấn thương">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-plus"></i> Thêm mới
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: Department List Table -->
+          <div class="details-card">
+            <div class="card-header">
+              <h3>Danh sách Khoa/Phòng</h3>
+            </div>
+            <div class="table-responsive" style="padding: 16px;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">STT</th>
+                    <th>Tên Khoa/Phòng</th>
+                    <th style="width: 100px;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="departments-list-container">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODALS CONTAINER -->
+
+  <!-- Modal: Register Practitioner (A.02) -->
+  <div class="modal" id="modal-register-practitioner">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Tiếp nhận & Đăng ký Hồ sơ Thực hành mới</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-register-practitioner">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label for="reg-name">Họ và Tên Học viên *</label>
+              <input type="text" id="reg-name" required placeholder="Ví dụ: Nguyễn Hoàng Nam">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="reg-username">Tên đăng nhập *</label>
+              <input type="text" id="reg-username" required placeholder="Ví dụ: namhv">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reg-dob">Ngày sinh *</label>
+              <input type="date" id="reg-dob" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-gender">Giới tính *</label>
+              <select id="reg-gender" required>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reg-email">Email liên hệ</label>
+              <input type="email" id="reg-email" placeholder="example@mail.com">
+            </div>
+            <div class="form-group">
+              <label for="reg-phone">Số điện thoại</label>
+              <input type="text" id="reg-phone" placeholder="09xxxxxxx">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reg-degree">Văn bằng chuyên môn *</label>
+              <input type="text" id="reg-degree" required placeholder="Ví dụ: Bác sĩ y khoa, Cử nhân Điều dưỡng">
+            </div>
+            <div class="form-group">
+              <label for="reg-specialty">Chức danh đăng ký *</label>
+              <select id="reg-specialty" required>
+                <option value="Bác sĩ">Bác sĩ (12 tháng)</option>
+                <option value="Y sĩ">Y sĩ (9 tháng)</option>
+                <option value="Điều dưỡng">Điều dưỡng (6 tháng)</option>
+                <option value="Hộ sinh">Hộ sinh (6 tháng)</option>
+                <option value="Kỹ thuật y">Kỹ thuật y (6 tháng)</option>
+                <option value="Dinh dưỡng lâm sàng">Dinh dưỡng lâm sàng (6 tháng)</option>
+                <option value="Cấp cứu viên ngoại viện">Cấp cứu viên ngoại viện (6 tháng)</option>
+                <option value="Tâm lý lâm sàng">Tâm lý lâm sàng (9 tháng)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reg-program">Chương trình thực hành *</label>
+              <select id="reg-program" required>
+                <option value="ND96">Nghị định 96/2023/NĐ-CP (Luật 2023)</option>
+                <option value="TT21">Bác sĩ y khoa 18 tháng (Thông tư 21/2020/TT-BYT)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="reg-start-date">Ngày dự kiến bắt đầu *</label>
+              <input type="date" id="reg-start-date" required>
+            </div>
+          </div>
+          <!-- Real File Upload Inputs (Optional) -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reg-avatar">Ảnh chân dung 4x6 cm (Tùy chọn)</label>
+              <input type="file" id="reg-avatar" accept="image/*">
+              <small style="color: var(--text-light); font-size: 11px;">Chấp nhận các file ảnh JPEG, PNG.</small>
+            </div>
+            <div class="form-group">
+              <label for="reg-degree-file">Bằng tốt nghiệp scan (Tùy chọn)</label>
+              <input type="file" id="reg-degree-file" accept="image/*,application/pdf">
+              <small style="color: var(--text-light); font-size: 11px;">Chấp nhận file PDF hoặc hình ảnh scan.</small>
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top: 6px;">
+            <label for="reg-supervisor">Bác sĩ hướng dẫn thực hành *</label>
+            <select id="reg-supervisor" required>
+              <option value="">-- Phân công người hướng dẫn chuyên môn --</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Xác nhận Lưu hồ sơ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Change Password -->
+  <div class="modal" id="modal-change-password">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>Đổi mật khẩu tài khoản</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-change-password">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="pw-old">Mật khẩu cũ *</label>
+            <input type="password" id="pw-old" required placeholder="Nhập mật khẩu hiện tại...">
+          </div>
+          <div class="form-group">
+            <label for="pw-new">Mật khẩu mới *</label>
+            <input type="password" id="pw-new" required placeholder="Nhập mật khẩu mới...">
+          </div>
+          <div class="form-group">
+            <label for="pw-confirm">Xác nhận mật khẩu mới *</label>
+            <input type="password" id="pw-confirm" required placeholder="Nhập lại mật khẩu mới...">
+          </div>
+          <div id="pw-error-msg" style="color:var(--danger); font-size:12.5px; display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu mật khẩu mới</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Reject profile (A.03) -->
+  <div class="modal" id="modal-reject-profile">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>Từ chối tiếp nhận hồ sơ thực hành</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-reject-profile">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="rej-reason">Lý do từ chối phê duyệt hồ sơ *</label>
+            <textarea id="rej-reason" required placeholder="Ví dụ: Thiếu scan bằng tốt nghiệp gốc, ảnh thẻ mờ..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary" style="background-color: var(--danger);">Gửi thông báo từ chối</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Supervisor -->
+  <div class="modal" id="modal-add-supervisor">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Đăng ký Người hướng dẫn</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-add-supervisor">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="sup-name">Họ và Tên *</label>
+            <input type="text" id="sup-name" required placeholder="Ví dụ: BS. Nguyễn Văn A">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sup-dob">Ngày sinh</label>
+              <input type="date" id="sup-dob">
+            </div>
+            <div class="form-group">
+              <label for="sup-gender">Giới tính</label>
+              <select id="sup-gender">
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sup-email">Email</label>
+              <input type="email" id="sup-email" placeholder="example@mail.com">
+            </div>
+            <div class="form-group">
+              <label for="sup-phone">Số điện thoại</label>
+              <input type="text" id="sup-phone" placeholder="09xxxxxxx">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="sup-specialty">Phạm vi chuyên môn hành nghề *</label>
+            <input type="text" id="sup-specialty" required placeholder="Ví dụ: Bác sĩ Nội khoa, Điều dưỡng Hồi sức">
+          </div>
+          <div class="form-group">
+            <label for="sup-department">Khoa làm việc *</label>
+            <input type="text" id="sup-department" list="departments-datalist" required placeholder="Ví dụ: Khoa Ngoại chấn thương">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sup-license">Số Giấy phép hành nghề (CCHN) *</label>
+              <input type="text" id="sup-license" required placeholder="Ví dụ: 012345/BYT-GPHN">
+            </div>
+            <div class="form-group">
+              <label for="sup-license-date">Ngày cấp phép hành nghề *</label>
+              <input type="date" id="sup-license-date" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu người hướng dẫn</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Daily Practice Log -->
+  <div class="modal" id="modal-add-log">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Nhập Nhật ký Thực hành Lâm sàng Hằng Ngày</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-add-log">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label for="log-date">Ngày thực hiện *</label>
+              <input type="date" id="log-date" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="log-department">Khoa lâm sàng *</label>
+              <input type="text" id="log-department" list="departments-datalist" required placeholder="Ví dụ: Nội tổng quát, Sản phụ khoa">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="log-content">Chi tiết ca bệnh lâm sàng / Hoạt động y khoa *</label>
+            <textarea id="log-content" required placeholder="Mô tả tóm tắt triệu chứng ca bệnh quan sát, bệnh án đã tham khảo hoặc cách chăm sóc..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 3;">
+              <label for="log-procedures">Kỹ thuật chuyên môn thực hiện dưới giám sát</label>
+              <input type="text" id="log-procedures" placeholder="Ví dụ: Đặt ống nội khí quản, thay băng rửa vết thương...">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="log-quantity">Số lượng ca *</label>
+              <input type="number" id="log-quantity" value="1" min="1" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu nhật ký hàng ngày</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Approve Practice Log -->
+  <div class="modal" id="modal-approve-log">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>Xác nhận Nhật ký Thực hành Lâm sàng</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-approve-log">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="app-log-status">Xác nhận nhật ký *</label>
+            <select id="app-log-status" required>
+              <option value="Đã xác nhận">Đồng ý xác nhận (Đạt)</option>
+              <option value="Yêu cầu sửa">Yêu cầu chỉnh sửa lại nhật ký</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="app-log-comment">Nhận xét của người hướng dẫn chuyên môn *</label>
+            <textarea id="app-log-comment" required placeholder="Ghi ý kiến nhận xét của người hướng dẫn..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Xác nhận Duyệt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Evaluation -->
+  <div class="modal" id="modal-add-evaluation">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Lập Bảng Đánh giá thực hành chuyên môn</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-add-evaluation">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eval-type">Loại phiếu đánh giá *</label>
+              <select id="eval-type" required>
+                <option value="Định kỳ">Đánh giá Định kỳ hàng tháng</option>
+                <option value="Cuối khóa">Đánh giá Tổng kết cuối khóa</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="eval-department">Khoa / Đợt thực tập đánh giá *</label>
+              <select id="eval-department" required>
+                <!-- Populated via JS -->
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="eval-evaluator">Người hướng dẫn thực hiện đánh giá *</label>
+            <select id="eval-evaluator" required>
+              <!-- Populated via JS -->
+            </select>
+          </div>
+          
+          <div style="font-weight: 600; font-size:13px; margin-top:8px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+            ĐÁNH GIÁ THEO 5 TIÊU CHÍ BỘ Y TẾ QUY ĐỊNH
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eval-spec">1. Năng lực thực hành chuyên môn</label>
+              <select id="eval-spec" required><option value="Đạt">Đạt</option><option value="Không đạt">Không đạt</option></select>
+            </div>
+            <div class="form-group">
+              <label for="eval-ethics">2. Đạo đức y đức nghề nghiệp</label>
+              <select id="eval-ethics" required><option value="Đạt">Đạt</option><option value="Không đạt">Không đạt</option></select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eval-law">3. Chấp hành các quy định pháp luật y tế</label>
+              <select id="eval-law" required><option value="Đạt">Đạt</option><option value="Không đạt">Không đạt</option></select>
+            </div>
+            <div class="form-group">
+              <label for="eval-comm">4. Kỹ năng giao tiếp, ứng xử</label>
+              <select id="eval-comm" required><option value="Đạt">Đạt</option><option value="Không đạt">Không đạt</option></select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="width: 50%;">
+              <label for="eval-safety">5. Đảm bảo an toàn người bệnh</label>
+              <select id="eval-safety" required><option value="Đạt">Đạt</option><option value="Không đạt">Không đạt</option></select>
+            </div>
+            <div class="form-group" style="width: 50%;">
+              <label for="eval-result">Đánh giá chung kết quả thực hành *</label>
+              <select id="eval-result" required><option value="Đạt">ĐẠT YÊU CẦU</option><option value="Không đạt">KHÔNG ĐẠT YÊU CẦU</option></select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="eval-comment">Nhận xét chi tiết của cơ sở thực hành *</label>
+            <textarea id="eval-comment" required placeholder="Nhận xét cụ thể về năng lực thực hành lâm sàng và thái độ y đức học viên..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Xác nhận Lưu đánh giá</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Log Competency Exam Result -->
+  <div class="modal" id="modal-national-test">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>Cập nhật kết quả đánh giá năng lực</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-national-test">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="test-date">Ngày tổ chức thi/đánh giá *</label>
+            <input type="date" id="test-date" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="test-score">Điểm số lâm sàng *</label>
+              <input type="number" id="test-score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label for="test-result">Kết quả thi *</label>
+              <select id="test-result" required>
+                <option value="Đạt">ĐẠT NĂNG LỰC</option>
+                <option value="Không đạt">KHÔNG ĐẠT NĂNG LỰC</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu kết quả</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add/Edit Timeline Stage -->
+  <div class="modal" id="modal-timeline-stage">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="timeline-stage-modal-title">Cập nhật Giai đoạn Luân khoa</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-timeline-stage">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="stage-name">Tên khoa lâm sàng / nội dung thực hành *</label>
+            <input type="text" id="stage-name" list="departments-datalist" required placeholder="Ví dụ: Khoa Ngoại chấn thương">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="stage-duration">Thời gian quy định *</label>
+              <input type="text" id="stage-duration" required placeholder="Ví dụ: 3 tháng hoặc 12 ngày">
+            </div>
+            <div class="form-group">
+              <label for="stage-status">Trạng thái luân khoa *</label>
+              <select id="stage-status" required>
+                <option value="Chờ xoay khoa">Chờ xoay khoa</option>
+                <option value="Đang thực hành">Đang thực hành</option>
+                <option value="Đã hoàn thành">Đã hoàn thành</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="stage-supervisor">Bác sĩ hướng dẫn giai đoạn</label>
+            <select id="stage-supervisor">
+              <option value="">-- Chọn bác sĩ hướng dẫn --</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="stage-start">Ngày bắt đầu giai đoạn</label>
+              <input type="date" id="stage-start">
+            </div>
+            <div class="form-group">
+              <label for="stage-end">Ngày kết thúc giai đoạn</label>
+              <input type="date" id="stage-end">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="stage-order">Thứ tự giai đoạn (0, 1, 2...)</label>
+            <input type="number" id="stage-order" min="0" value="0">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Xác nhận Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Supplemental Training Session -->
+  <div class="modal" id="modal-add-training">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Ghi nhận buổi học lý thuyết bổ trợ</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-add-training">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="train-topic">Chủ đề bài giảng (Y đức, Quy chế y pháp, An toàn bệnh nhân...) *</label>
+            <input type="text" id="train-topic" required placeholder="Ví dụ: Quy chế hồ sơ bệnh án và trách nhiệm pháp lý bác sĩ">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="train-date">Ngày học bổ trợ *</label>
+              <input type="date" id="train-date" required>
+            </div>
+            <div class="form-group">
+              <label for="train-hours">Số giờ học *</label>
+              <input type="number" id="train-hours" required min="1" max="10" value="2">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="train-speaker">Báo cáo viên / Giảng viên *</label>
+            <input type="text" id="train-speaker" required placeholder="Ví dụ: PGS. TS. Nguyễn Văn A">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close">Hủy</button>
+          <button type="submit" class="btn btn-primary">Ghi nhận</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PRINT CONTAINER (Hidden in screen, visible in @media print) -->
+  <div id="print-container"></div>
+
+  <!-- Global Departments Datalist for Autocomplete -->
+  <datalist id="departments-datalist"></datalist>
+
+  <!-- JS Zip Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Core JS Files -->
+  <script src="js/templates.js?v=2.0.3"></script>
+  <script src="js/app.js?v=2.0.3"></script>
+</body>
+</html>
