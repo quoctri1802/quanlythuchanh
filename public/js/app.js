@@ -2199,6 +2199,26 @@ document.getElementById('btn-sys-restore').addEventListener('click', async () =>
   }
 });
 
+// Database Reset (Clear all practitioners & notifications)
+document.getElementById('btn-sys-reset-practitioners').addEventListener('click', async () => {
+  const confirmReset = confirm("CẢNH BÁO NGUY HIỂM:\nHành động này sẽ XÓA SẠCH toàn bộ học viên, lộ trình thực hành, nhật ký, đánh giá, và tất cả thông báo trên hệ thống.\n\nBạn có chắc chắn muốn thực hiện reset hệ thống không?");
+  if (!confirmReset) return;
+
+  try {
+    const res = await fetch('/api/system/reset-practitioners', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      alert(data.message);
+      await refreshData();
+      switchView('dashboard');
+    } else {
+      alert('Reset thất bại: ' + (data.error || 'Lỗi không rõ'));
+    }
+  } catch (err) {
+    alert('Lỗi kết nối: ' + err.message);
+  }
+});
+
 // =========================================================================
 // FEATURE: IMPORT PRACTITIONERS FROM CSV
 // =========================================================================

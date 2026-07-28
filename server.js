@@ -1647,3 +1647,38 @@ app.post('/api/system/restore', async (req, res) => {
     client.release();
   }
 });
+
+app.post('/api/system/reset-practitioners', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Clear all related tables
+    await client.query('DELETE FROM notifications;');
+    await client.query('DELETE FROM supplemental_training;');
+    await client.query('DELETE FROM evaluations;');
+    await client.query('DELETE FROM practice_logs;');
+    await client.query('DELETE FROM practitioner_rotations;');
+    await client.query('DELETE FROM practitioners;');
+    
+    // Clear trainee user accounts
+    await client.query("DELETE FROM users WHERE role = 'Học viên';");
+
+    // Reset sequences for cleared tables
+    await client.query("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users;");
+    await client.query("SELECT setval(pg_get_serial_sequence('practitioners', 'id'), COALESCE(MAX(id), 1)) FROM practitioners;");
+    await client.query("SELECT setval(pg_get_serial_sequence('practitioner_rotations', 'id'), COALESCE(MAX(id), 1)) FROM practitioner_rotations;");
+    await client.query("SELECT setval(pg_get_serial_sequence('practice_logs', 'id'), COALESCE(MAX(id), 1)) FROM practice_logs;");
+    await client.query("SELECT setval(pg_get_serial_sequence('evaluations', 'id'), COALESCE(MAX(id), 1)) FROM evaluations;");
+    await client.query("SELECT setval(pg_get_serial_sequence('supplemental_training', 'id'), COALESCE(MAX(id), 1)) FROM supplemental_training;");
+    await client.query("SELECT setval(pg_get_serial_sequence('notifications', 'id'), COALESCE(MAX(id), 1)) FROM notifications;");
+
+    await client.query('COMMIT');
+    res.json({ message: 'Đã xóa toàn bộ học viên và thông báo hệ thống thành công!' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
