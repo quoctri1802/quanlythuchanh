@@ -322,8 +322,19 @@ async function seedDefaultRotations(client, practitionerId, program, specialty, 
       ];
     } else if (specialty === 'Y sĩ') {
       rotations = [
-        { name: 'Thực hành Chuyên môn Lâm sàng', duration: '6 tháng' },
-        { name: 'Thực hành Hồi sức Cấp cứu', duration: '3 tháng' }
+        { name: 'Thực hành lâm sàng chuyên khoa Nội (01 tháng)', duration: '4 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Ngoại (01 tháng)', duration: '4 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Sản phụ khoa (01 tháng)', duration: '4 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Nhi (01 tháng)', duration: '4 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Hồi sức cấp cứu (03 tháng)', duration: '12 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Tai mũi họng (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Mắt (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Da liễu (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Tâm thần (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Xét nghiệm (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Chẩn đoán hình ảnh (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Y học cổ truyền – Phục hồi chức năng (01 tuần)', duration: '1 tuần' },
+        { name: 'Thực hành lâm sàng chuyên khoa Răng hàm mặt (01 tuần)', duration: '1 tuần' }
       ];
     } else if (['Điều dưỡng', 'Hộ sinh', 'Kỹ thuật y'].includes(specialty)) {
       rotations = [
