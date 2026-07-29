@@ -447,6 +447,64 @@ function updateDepartmentsDatalist() {
   }
 }
 
+// =========================================================================
+// RENDER: DEPARTMENTS LIST
+// =========================================================================
+function renderDepartmentsList() {
+  const container = document.getElementById('departments-list-container');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (!state.departments || state.departments.length === 0) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: center; color: var(--text-light); padding: 20px;">
+          Chưa có khoa/phòng nào trong hệ thống.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  state.departments.forEach((dept, index) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td><strong>${dept.name}</strong></td>
+      <td style="text-align: center;">
+        <button class="btn-icon btn-del-dept" data-id="${dept.id}" title="Xóa khoa/phòng" style="color: var(--danger);">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    `;
+    
+    // Bind delete event
+    tr.querySelector('.btn-del-dept').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const confirmDelete = confirm(`Bạn có chắc chắn muốn xóa khoa/phòng "${dept.name}" không?`);
+      if (!confirmDelete) return;
+      
+      try {
+        const res = await fetch(`/api/departments/${dept.id}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          await refreshData();
+          renderDepartmentsList();
+        } else {
+          const err = await res.json();
+          alert('Lỗi khi xóa khoa/phòng: ' + err.error);
+        }
+      } catch (err) {
+        alert('Lỗi kết nối máy chủ: ' + err.message);
+      }
+    });
+    
+    container.appendChild(tr);
+  });
+}
+
 // Load and render notifications
 async function loadNotifications() {
   if (!state.currentUser) return;
