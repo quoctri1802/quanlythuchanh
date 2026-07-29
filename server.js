@@ -972,22 +972,42 @@ app.post('/api/practitioners/bulk', async (req, res) => {
         continue;
       }
 
-      // Check username duplicate in database
-      const uVal = username || `hv_${Date.now()}_${i}`;
-      const userCheck = await client.query('SELECT id FROM users WHERE username = $1', [uVal]);
-      if (userCheck.rows.length > 0) {
-        errors.push(`Dòng ${i + 1}: Tên đăng nhập '${uVal}' đã tồn tại trong hệ thống.`);
-        continue;
-      }
-
       try {
         await client.query('BEGIN');
+
+        // Calculate next sequence number for bvlcXXXX
+        const countRes = await client.query("SELECT COUNT(*) FROM users WHERE username LIKE 'bvlc%'");
+        const nextNum = parseInt(countRes.rows[0].count) + 1;
+        const xxxx = String(nextNum).padStart(4, '0');
+        
+        const removeVietnameseTones = (str) => {
+          str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+          str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+          str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+          str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+          str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+          str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+          str = str.replace(/đ/g, "d");
+          str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+          str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+          str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+          str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+          str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+          str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+          str = str.replace(/Đ/g, "D");
+          str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+          str = str.replace(/\u02C6|\u0306|\u031B/g, "");
+          return str;
+        };
+        
+        const cleanName = removeVietnameseTones(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const uVal = `bvlc${xxxx}-${cleanName}`;
 
         // Insert user
         const uRes = await client.query(
           `INSERT INTO users (username, password, role, name, email, phone)
            VALUES ($1, $2, 'Học viên', $3, $4, $5) RETURNING id`,
-          [uVal, password || '123456', name, email || null, phone || null]
+          [uVal, '123456', name, email || null, phone || null]
         );
         const userId = uRes.rows[0].id;
 
@@ -1075,12 +1095,57 @@ app.put('/api/practitioners/:id', async (req, res) => {
 // A.03: Approve or reject profile
 app.post('/api/practitioners/:id/approve', async (req, res) => {
   const { status, reason } = req.body; // 'Đã duyệt' or 'Từ chối'
+  const client = await pool.connect();
   try {
-    const pracRes = await pool.query('SELECT * FROM practitioners WHERE id = $1', [req.params.id]);
-    if (pracRes.rows.length === 0) return res.status(404).json({ error: 'Practitioner profile not found' });
+    await client.query('BEGIN');
+    
+    const pracRes = await client.query('SELECT * FROM practitioners WHERE id = $1', [req.params.id]);
+    if (pracRes.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ error: 'Practitioner profile not found' });
+    }
     const prac = pracRes.rows[0];
 
-    const result = await pool.query(
+    let finalUsername = null;
+    if (status === 'Đã duyệt') {
+      // Calculate next sequence number for bvlcXXXX
+      const countRes = await client.query("SELECT COUNT(*) FROM users WHERE username LIKE 'bvlc%'");
+      const nextNum = parseInt(countRes.rows[0].count) + 1;
+      const xxxx = String(nextNum).padStart(4, '0');
+      
+      const removeVietnameseTones = (str) => {
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+        str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+        str = str.replace(/đ/g, "d");
+        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+        str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+        str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+        str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+        str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+        str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+        str = str.replace(/Đ/g, "D");
+        str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+        str = str.replace(/\u02C6|\u0306|\u031B/g, "");
+        return str;
+      };
+      
+      const cleanName = removeVietnameseTones(prac.name).toLowerCase().replace(/[^a-z0-9]/g, '');
+      finalUsername = `bvlc${xxxx}-${cleanName}`;
+      
+      // Update username and password in users table
+      if (prac.user_id) {
+        await client.query(
+          "UPDATE users SET username = $1, password = '123456' WHERE id = $2",
+          [finalUsername, prac.user_id]
+        );
+      }
+    }
+
+    const result = await client.query(
       'UPDATE practitioners SET profile_status = $1, rejection_reason = $2 WHERE id = $3 RETURNING *',
       [status, reason || null, req.params.id]
     );
@@ -1088,14 +1153,18 @@ app.post('/api/practitioners/:id/approve', async (req, res) => {
     // Send notification to trainee
     if (prac.user_id) {
       const msg = status === 'Đã duyệt' 
-        ? 'Hồ sơ đăng ký thực hành của bạn tại TTYT Liên Chiểu đã được duyệt thành công.' 
+        ? `Hồ sơ đăng ký thực hành của bạn tại TTYT Liên Chiểu đã được duyệt thành công. Tài khoản đăng nhập mới của bạn là: ${finalUsername}, mật khẩu: 123456.`
         : `Hồ sơ thực hành của bạn bị từ chối duyệt. Lý do: ${reason}`;
-      await pool.query('INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)', [prac.user_id, 'Kết quả duyệt hồ sơ', msg]);
+      await client.query('INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)', [prac.user_id, 'Kết quả duyệt hồ sơ', msg]);
     }
 
+    await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

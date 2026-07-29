@@ -2482,36 +2482,73 @@ document.querySelector('#modal-import-practitioners .modal-close-btn').addEventL
   document.getElementById('modal-import-practitioners').classList.remove('active');
 });
 
-// Download CSV template
-document.getElementById('btn-download-csv-template').addEventListener('click', () => {
-  const csvContent = "Họ và tên,Ngày sinh (YYYY-MM-DD),Giới tính,Email,Số điện thoại,Văn bằng chuyên môn,Chức danh đăng ký,Khung thực hành (ND96/TT21),Ngày bắt đầu (YYYY-MM-DD),Tên đăng nhập,Mật khẩu\n" +
-                     "Nguyễn Văn An,1998-05-15,Nam,vanan@lienchieu.gov.vn,0912345678,Bác sĩ y khoa,Bác sĩ,ND96,2026-08-01,nguyenvanan,LienChieu@2026\n" +
-                     "Trần Thị Bình,2000-02-20,Nữ,thibinh@lienchieu.gov.vn,0987654321,Cử nhân điều dưỡng,Điều dưỡng,ND96,2026-08-01,tranthibinh,LienChieu@2026";
-                     
-  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", "mau_danh_sach_hoc_vien.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+// Download Excel template
+document.getElementById('btn-download-excel-template').addEventListener('click', () => {
+  const wb = XLSX.utils.book_new();
+  const data = [
+    ["Họ và tên", "Ngày sinh (YYYY-MM-DD)", "Giới tính", "Email", "Số điện thoại", "Văn bằng chuyên môn", "Chức danh đăng ký", "Khung thực hành (ND96/TT21)", "Ngày bắt đầu (YYYY-MM-DD)"],
+    ["Nguyễn Văn An", "1998-05-15", "Nam", "vanan@lienchieu.gov.vn", "0912345678", "Bác sĩ y khoa", "Bác sĩ", "ND96", "2026-08-01"],
+    ["Trần Thị Bình", "2000-02-20", "Nữ", "thibinh@lienchieu.gov.vn", "0987654321", "Cử nhân điều dưỡng", "Điều dưỡng", "ND96", "2026-08-01"]
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, "DanhSachHocVien");
+  XLSX.writeFile(wb, "mau_danh_sach_hoc_vien.xlsx");
 });
 
-// File input handler
+// File input handler for Excel
 document.getElementById('import-file-input').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   
   const reader = new FileReader();
   reader.onload = (evt) => {
-    const text = evt.target.result;
-    const parsed = parseCSV(text);
-    
-    state.parsedImportRows = parsed;
-    renderImportPreview();
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      
+      // Parse to array of arrays
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      const parsed = [];
+      for (let i = 1; i < rows.length; i++) {
+        const cols = rows[i];
+        if (!cols || cols.length === 0 || !cols[0]) continue;
+        
+        // Helper to format date properly if Excel date serial is used
+        const formatExcelDate = (val) => {
+          if (!val) return '';
+          if (typeof val === 'number') {
+            // Excel serial date
+            const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+            return date.toISOString().split('T')[0];
+          }
+          return String(val).trim();
+        };
+
+        parsed.push({
+          name: cols[0] ? String(cols[0]).trim() : '',
+          dob: formatExcelDate(cols[1]),
+          gender: cols[2] ? String(cols[2]).trim() : 'Nam',
+          email: cols[3] ? String(cols[3]).trim() : '',
+          phone: cols[4] ? String(cols[4]).trim() : '',
+          degree: cols[5] ? String(cols[5]).trim() : 'Đại học',
+          specialty: cols[6] ? String(cols[6]).trim() : '',
+          program: cols[7] ? String(cols[7]).trim() : 'ND96',
+          start_date: formatExcelDate(cols[8]),
+          username: '',
+          password: ''
+        });
+      }
+      
+      state.parsedImportRows = parsed;
+      renderImportPreview();
+    } catch (err) {
+      alert('Không thể đọc file Excel: ' + err.message);
+    }
   };
-  reader.readAsText(file);
+  reader.readAsArrayBuffer(file);
 });
 
 function renderImportPreview() {

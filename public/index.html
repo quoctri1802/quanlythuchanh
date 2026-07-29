@@ -650,16 +650,16 @@
       </div>
       <div class="modal-body">
         <p style="margin-bottom: 12px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
-          Chọn file CSV chứa danh sách học viên để tiếp nhận hàng loạt vào hệ thống. Các cột trong file CSV bao gồm:<br>
+          Chọn file Excel (.xlsx, .xls) chứa danh sách học viên để tiếp nhận hàng loạt vào hệ thống. Các cột trong file Excel bao gồm:<br>
           <code style="background-color: var(--bg-secondary); padding: 4px 8px; border-radius: 4px; display: block; margin-top: 6px; font-size: 11px; word-break: break-all; color: var(--accent-color);">
-            Họ và tên, Ngày sinh (YYYY-MM-DD), Giới tính, Email, Số điện thoại, Văn bằng, Chức danh đăng ký, Khung thực hành (ND96/TT21), Ngày bắt đầu (YYYY-MM-DD), Tên đăng nhập, Mật khẩu
+            Họ và tên, Ngày sinh (YYYY-MM-DD), Giới tính, Email, Số điện thoại, Văn bằng chuyên môn, Chức danh đăng ký, Khung thực hành (ND96/TT21), Ngày bắt đầu (YYYY-MM-DD)
           </code>
         </p>
         
         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-          <input type="file" id="import-file-input" accept=".csv" style="padding: 6px; border: 1px dashed var(--border-color); border-radius: 4px; flex-grow: 1; font-size: 13px;">
-          <button class="btn btn-secondary" id="btn-download-csv-template" style="font-size:12.5px; white-space: nowrap; height: 38px;">
-            <i class="fa-solid fa-download"></i> Tải file mẫu CSV
+          <input type="file" id="import-file-input" accept=".xlsx, .xls" style="padding: 6px; border: 1px dashed var(--border-color); border-radius: 4px; flex-grow: 1; font-size: 13px;">
+          <button class="btn btn-secondary" id="btn-download-excel-template" style="font-size:12.5px; white-space: nowrap; height: 38px;">
+            <i class="fa-solid fa-download"></i> Tải file mẫu Excel
           </button>
         </div>
 
@@ -1327,6 +1327,8 @@
 
   <!-- JS Zip Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- SheetJS Library for Excel parsing/generation -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Core JS Files -->
   <script src="js/templates.js?v=2.0.3"></script>
   <script src="js/app.js?v=2.0.3"></script>
