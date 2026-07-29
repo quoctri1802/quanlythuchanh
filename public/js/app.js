@@ -825,6 +825,14 @@ document.getElementById('prac-status-filter').addEventListener('change', (e) => 
   renderPractitionersList();
 });
 
+// Bind supervisors search and filter events
+document.getElementById('sup-search').addEventListener('input', () => {
+  renderSupervisorsList();
+});
+document.getElementById('sup-specialty-filter').addEventListener('change', () => {
+  renderSupervisorsList();
+});
+
 let practitionerIdToEdit = null;
 
 // A.02: Open Practitioner Registration modal
@@ -1017,9 +1025,31 @@ function openAssignSupervisorModal(id) {
 // =========================================================================
 function renderSupervisorsList() {
   const container = document.getElementById('supervisors-list-container');
+  if (!container) return;
   container.innerHTML = '';
 
-  state.supervisors.forEach(s => {
+  const searchQuery = document.getElementById('sup-search').value.toLowerCase().trim();
+  const specialtyFilter = document.getElementById('sup-specialty-filter').value;
+
+  const filteredSupervisors = state.supervisors.filter(s => {
+    // Specialty filter
+    if (specialtyFilter !== 'ALL') {
+      const match = s.specialty && s.specialty.toLowerCase().includes(specialtyFilter.toLowerCase());
+      if (!match) return false;
+    }
+
+    // Search query
+    if (searchQuery) {
+      const nameMatch = s.name && s.name.toLowerCase().includes(searchQuery);
+      const licMatch = s.license_number && s.license_number.toLowerCase().includes(searchQuery);
+      const deptMatch = s.department && s.department.toLowerCase().includes(searchQuery);
+      if (!nameMatch && !licMatch && !deptMatch) return false;
+    }
+
+    return true;
+  });
+
+  filteredSupervisors.forEach(s => {
     const tr = document.createElement('tr');
     const eligible = isSupervisorEligible(s.license_date);
     const eligibilityBadge = eligible 
@@ -1035,12 +1065,64 @@ function renderSupervisorsList() {
       <td><code>${s.license_number}</code></td>
       <td>${licDate}</td>
       <td>${eligibilityBadge}</td>
-      <td><span style="font-weight:700;">${s.active_trainees}</span> học viên</td>
+      <td>
+        <a href="#" class="view-sup-trainees" style="font-weight:700; text-decoration: underline; color: var(--primary);">
+          ${s.active_trainees} học viên
+        </a>
+      </td>
       <td class="actions-cell">
+        <button class="btn-icon btn-view-sup-trainees" title="Xem danh sách học viên" style="margin-right: 5px; color: var(--primary);"><i class="fas fa-users"></i></button>
         <button class="btn-icon btn-edit-sup" style="margin-right: 5px; color: var(--primary);"><i class="fas fa-edit"></i></button>
         <button class="btn-icon btn-del-sup"><i class="fas fa-trash"></i></button>
       </td>
     `;
+
+    // View trainees event
+    const openTraineesHandler = (e) => {
+      e.preventDefault();
+      const modal = document.getElementById('modal-view-supervisor-trainees');
+      document.getElementById('sup-trainees-name').innerText = s.name;
+      document.getElementById('sup-trainees-specialty').innerText = `(${s.specialty})`;
+
+      const listContainer = document.getElementById('sup-trainees-list-container');
+      listContainer.innerHTML = '';
+
+      const assignedTrainees = state.practitioners.filter(p => p.supervisor_id === s.id);
+
+      if (assignedTrainees.length === 0) {
+        listContainer.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-light); padding: 20px;">
+              Chưa hướng dẫn học viên nào.
+            </td>
+          </tr>
+        `;
+      } else {
+        assignedTrainees.forEach(p => {
+          const startDate = p.start_date ? new Date(p.start_date).toLocaleDateString('vi-VN') : 'N/A';
+          const statusBadge = p.status === 'Đang thực hành' 
+            ? '<span class="badge badge-success">Đang thực hành</span>'
+            : p.status === 'Đã hoàn thành'
+              ? '<span class="badge badge-info">Đã hoàn thành</span>'
+              : `<span class="badge badge-secondary">${p.status}</span>`;
+
+          const pTr = document.createElement('tr');
+          pTr.innerHTML = `
+            <td><strong>${p.name}</strong></td>
+            <td>${p.specialty}</td>
+            <td>${p.program || 'N/A'}</td>
+            <td>${startDate}</td>
+            <td>${statusBadge}</td>
+          `;
+          listContainer.appendChild(pTr);
+        });
+      }
+
+      modal.classList.add('active');
+    };
+
+    tr.querySelector('.view-sup-trainees').addEventListener('click', openTraineesHandler);
+    tr.querySelector('.btn-view-sup-trainees').addEventListener('click', openTraineesHandler);
 
     tr.querySelector('.btn-edit-sup').addEventListener('click', () => {
       const modal = document.getElementById('modal-add-supervisor');

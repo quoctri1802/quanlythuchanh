@@ -238,11 +238,30 @@
 
       <!-- VIEW 3: SUPERVISORS MANAGEMENT -->
       <section id="view-supervisors" class="view-panel" style="display: none;">
-        <div class="filter-bar">
-          <div style="font-weight: 500; color: var(--text-secondary);">
-            Danh sách bác sĩ/điều dưỡng hướng dẫn lâm sàng đủ điều kiện
+        <div class="filter-bar" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center;">
+          <div style="display: flex; gap: 12px; flex-grow: 1; flex-wrap: wrap;">
+            <div class="search-box" style="min-width: 250px;">
+              <i class="fas fa-search"></i>
+              <input type="text" id="sup-search" placeholder="Tìm theo tên người hướng dẫn, số CCHN...">
+            </div>
+            <div class="filter-controls" style="display: flex; gap: 8px;">
+              <select id="sup-specialty-filter">
+                <option value="ALL">-- Tất cả chuyên môn --</option>
+                <option value="Nội">Nội khoa</option>
+                <option value="Ngoại">Ngoại khoa</option>
+                <option value="Sản">Sản phụ khoa</option>
+                <option value="Nhi">Nhi khoa</option>
+                <option value="Răng hàm mặt">Răng hàm mặt</option>
+                <option value="Y học cổ truyền">Y học cổ truyền</option>
+                <option value="Da liễu">Da liễu</option>
+                <option value="Hồi sức">Hồi sức cấp cứu</option>
+                <option value="Xét nghiệm">Xét nghiệm</option>
+                <option value="Hình ảnh">Chẩn đoán hình ảnh</option>
+                <option value="Phục hồi">Phục hồi chức năng</option>
+              </select>
+            </div>
           </div>
-          <button class="btn btn-primary" id="btn-add-supervisor">
+          <button class="btn btn-primary" id="btn-add-supervisor" style="white-space: nowrap;">
             <i class="fa-solid fa-plus"></i> Thêm Người hướng dẫn (A.04)
           </button>
         </div>
@@ -1258,6 +1277,41 @@
           <button type="submit" class="btn btn-primary">Ghi nhận</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: View Supervisor Trainees -->
+  <div class="modal" id="modal-view-supervisor-trainees">
+    <div class="modal-content" style="max-width: 750px;">
+      <div class="modal-header">
+        <h3 id="sup-trainees-title">Danh sách học viên hướng dẫn</h3>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 15px; font-size: 14.5px; line-height: 1.4; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+          <strong>Người hướng dẫn:</strong> <span id="sup-trainees-name" style="font-weight: 700; color: var(--primary);">N/A</span> 
+          <span style="color: var(--text-light); margin-left: 10px; font-size: 13px;" id="sup-trainees-specialty"></span>
+        </div>
+        <div class="table-responsive">
+          <table class="custom-table" style="font-size: 12.5px;">
+            <thead>
+              <tr>
+                <th>Học viên</th>
+                <th>Chuyên khoa</th>
+                <th>Khung đào tạo</th>
+                <th>Ngày bắt đầu</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="sup-trainees-list-container">
+              <!-- Trainees loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; padding: 15px 20px; border-top: 1px solid var(--border-color);">
+        <button class="btn btn-secondary modal-close">Đóng</button>
+      </div>
     </div>
   </div>
 
