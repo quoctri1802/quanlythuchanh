@@ -86,7 +86,38 @@ async function seedSupervisors(client) {
     { name: 'Lê Thị Kiều Trang', license_number: '0139/CCHN-D-SYT-ĐNA', license_date: '2020-07-07', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'lethikieutrang' },
     { name: 'Lê Thị Diễm Trinh', license_number: '0590/ĐNA-CCHND', license_date: '2016-07-05', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'lethidiemtrinh' },
     { name: 'Trần Viết Thành', license_number: '1339/CCHN-D-SYT-ĐNA', license_date: '2021-04-05', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'tranvietthanh' },
-    { name: 'Chế Thị Mỹ Chi', license_number: '1384/CCHN-D-SYT-ĐNA', license_date: '2021-05-14', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'chethimychi' }
+    { name: 'Chế Thị Mỹ Chi', license_number: '1384/CCHN-D-SYT-ĐNA', license_date: '2021-05-14', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'chethimychi' },
+
+    // XII. Điều dưỡng
+    { name: 'Huỳnh Thị Kim Yến', license_number: '002787/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'huynhthikimyen' },
+    { name: 'Phan Thị Minh Thuận', license_number: '002896/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Điều dưỡng', department: 'Khoa Nội tổng hợp', username: 'phanthiminhthuan' },
+    { name: 'Phạm Thị Thu Hiền', license_number: '002783/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Điều dưỡng', department: 'Khoa Ngoại chấn thương', username: 'phamthithuhien' },
+    { name: 'Nguyễn Thị Đang Trang', license_number: '002715/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Sản phụ khoa', username: 'nguyenthidangtrang' },
+    { name: 'Phạm Thị Vân', license_number: '002788/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Nhi', username: 'phamthivan' },
+    { name: 'Ngô Thị Vân Na', license_number: '002800/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'ngothivanna' },
+    { name: 'Châu Thị Minh Phương', license_number: '002779/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Nội tổng hợp', username: 'chauthiminhphuong' },
+    { name: 'Nguyễn Thị Thùy Nhung', license_number: '004750/ĐNA-CCHN', license_date: '2014-10-28', specialty: 'Điều dưỡng', department: 'Khoa Ngoại chấn thương', username: 'nguyenthithuynhung' },
+    { name: 'Nguyễn Thị Thực', license_number: '002905/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Sản phụ khoa', username: 'nguyenthithuc' },
+    { name: 'Nguyễn Lê Thùy Trang', license_number: '005032/ĐNA-CCHN', license_date: '2015-03-03', specialty: 'Điều dưỡng', department: 'Khoa Nhi', username: 'nguyenlethuytrang' },
+    { name: 'Nguyễn Thị Minh Châu', license_number: '005419/QNA-CCHN', license_date: '2016-12-28', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'nguyenthiminhchau' },
+    { name: 'Dương Thị Kim Phương', license_number: '003466/QNA-CCHN', license_date: '2014-06-26', specialty: 'Điều dưỡng', department: 'Khoa Nội tổng hợp', username: 'duongthikimphuong' },
+    { name: 'Lê Thị Hồng Liên', license_number: '002569/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Ngoại chấn thương', username: 'lethihonglien' },
+    { name: 'Lê Thị Ánh Ngọc', license_number: '004689/ĐNA-CCHN', license_date: '2014-10-28', specialty: 'Điều dưỡng', department: 'Khoa Sản phụ khoa', username: 'lethianhngoc' },
+    { name: 'Đặng Thị Thu Thúy', license_number: '002759/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Điều dưỡng', department: 'Khoa Nhi', username: 'dangthithuthuy' },
+    { name: 'Nguyễn Thị Kim Anh', license_number: '004747/ĐNA-CCHN', license_date: '2014-10-28', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'nguyenthikimanh' },
+    { name: 'Nguyễn Thị Phong', license_number: '002935/ĐNA-CCHN', license_date: '2013-12-28', specialty: 'Điều dưỡng', department: 'Khoa Nội tổng hợp', username: 'nguyenthiphong' },
+    { name: 'Võ Thị Ni Na', license_number: '004724/ĐNA-CCHN', license_date: '2014-10-28', specialty: 'Điều dưỡng', department: 'Khoa Ngoại chấn thương', username: 'vothinina' },
+    { name: 'Nguyễn Thị Kim Giang', license_number: '002707/ĐNA-CCHN', license_date: '2013-12-22', specialty: 'Điều dưỡng', department: 'Khoa Sản phụ khoa', username: 'nguyenthikimgiang' },
+    { name: 'Lê Thị Mỹ Trinh', license_number: '002568/ĐNA-CCHN', license_date: '2013-12-23', specialty: 'Điều dưỡng', department: 'Khoa Nhi', username: 'lethimytrinh' },
+    { name: 'Nguyễn Thị Tô Dung', license_number: '002731/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'nguyenthitodung' },
+    { name: 'Phan Hoàng Vũ', license_number: '002567/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Nội tổng hợp', username: 'phanhoangvu' },
+    { name: 'Nguyễn Cứu Khoa', license_number: '007140/ĐNA-CCHN', license_date: '2017-11-24', specialty: 'Điều dưỡng', department: 'Khoa Ngoại chấn thương', username: 'nguyencuukhoa' },
+    { name: 'Trần Thị Thanh Nhựt', license_number: '002795/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Điều dưỡng', department: 'Khoa Sản phụ khoa', username: 'tranthithanhnhut' },
+    { name: 'Bùi Thị Non', license_number: '002586/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Nhi', username: 'buithinon' },
+    { name: 'Trương Thị Thu Yến', license_number: '002643/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'truongthithuyen' },
+    { name: 'Tống Thị Thanh Thủy', license_number: '002595/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Nội tổng hợp', username: 'tongthithanhthuy' },
+    { name: 'Nguyễn Thị Phương Thảo', license_number: '004814/ĐNA-CCHN', license_date: '2014-11-18', specialty: 'Điều dưỡng', department: 'Khoa Ngoại chấn thương', username: 'nguyenthiphuongthao' },
+    { name: 'Mai Thị Phương', license_number: '002571/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'maithiphuong' }
   ];
 
   for (const s of supervisorList) {
@@ -1377,15 +1408,28 @@ app.post('/api/evaluations', async (req, res) => {
           { key: 'hồi sức', match: ['hồi sức', 'cấp cứu'] },
           { key: 'xét nghiệm', match: ['xét nghiệm'] },
           { key: 'hình ảnh', match: ['hình ảnh'] },
-          { key: 'phục hồi', match: ['phục hồi', 'vật lý trị liệu', 'phcn'] }
+          { key: 'phục hồi', match: ['phục hồi', 'vật lý trị liệu', 'phcn'] },
+          { key: 'dược', match: ['dược', 'dược sĩ'] }
         ];
 
         const matchedKeyword = keywords.find(kw => kw.match.some(m => deptLower.includes(m)));
         if (matchedKeyword) {
-          const isMatch = matchedKeyword.match.some(m => supervisorSpecialty.includes(m));
+          let isMatch = matchedKeyword.match.some(m => supervisorSpecialty.includes(m));
+          
+          // Nurse supervisors are allowed to evaluate clinical stages for nurse/midwife/tech trainees
+          if (supervisorSpecialty.includes('điều dưỡng')) {
+            const pracQuery = await pool.query('SELECT specialty FROM practitioners WHERE id = $1', [practitioner_id]);
+            if (pracQuery.rows.length > 0) {
+              const pracSpecialty = pracQuery.rows[0].specialty.toLowerCase();
+              if (pracSpecialty.includes('điều dưỡng') || pracSpecialty.includes('hộ sinh') || pracSpecialty.includes('kỹ thuật y')) {
+                isMatch = true;
+              }
+            }
+          }
+          
           if (!isMatch) {
             return res.status(400).json({ 
-              error: `Bác sĩ ${supervisorName} chuyên khoa '${supQuery.rows[0].specialty}' không được phép đánh giá chuyên khoa '${department}'.` 
+              error: `Bác sĩ/Điều dưỡng ${supervisorName} chuyên khoa '${supQuery.rows[0].specialty}' không được phép đánh giá chuyên khoa '${department}'.` 
             });
           }
         }
