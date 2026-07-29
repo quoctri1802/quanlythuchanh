@@ -847,11 +847,20 @@ document.getElementById('btn-register-practitioner').addEventListener('click', (
   supervisorSelect.innerHTML = '<option value="">-- Phân công người hướng dẫn chuyên môn --</option>';
   state.supervisors.forEach(s => {
     const eligible = isSupervisorEligible(s.license_date);
-    const expText = eligible ? '' : ' (Chưa đủ 3 năm kinh nghiệm)';
+    const count = s.active_trainees || 0;
+    const isFull = count >= 5;
+    
+    let expText = eligible ? '' : ' (Chưa đủ 3 năm kinh nghiệm)';
+    if (isFull) {
+      expText += ' (Đầy - Đang HD 5 học viên)';
+    } else {
+      expText += ` (Đang HD: ${count}/5 học viên)`;
+    }
+    
     const option = document.createElement('option');
     option.value = s.id;
     option.innerText = `${s.name} - ${s.specialty} (${s.department || 'Khoa tự do'})${expText}`;
-    if (!eligible) {
+    if (!eligible || isFull) {
       option.disabled = true;
       option.style.color = 'var(--text-light)';
     }
@@ -881,13 +890,23 @@ function openEditPractitionerModal(p) {
   
   const supervisorSelect = document.getElementById('reg-supervisor');
   supervisorSelect.innerHTML = '<option value="">-- Phân công người hướng dẫn chuyên môn --</option>';
+  const currentSupId = p.supervisor_id;
   state.supervisors.forEach(s => {
     const eligible = isSupervisorEligible(s.license_date);
-    const expText = eligible ? '' : ' (Chưa đủ 3 năm kinh nghiệm)';
+    const count = s.active_trainees || 0;
+    const isFull = count >= 5 && s.id !== currentSupId;
+    
+    let expText = eligible ? '' : ' (Chưa đủ 3 năm kinh nghiệm)';
+    if (isFull) {
+      expText += ' (Đầy - Đang HD 5 học viên)';
+    } else {
+      expText += ` (Đang HD: ${count}/5 học viên)`;
+    }
+    
     const option = document.createElement('option');
     option.value = s.id;
     option.innerText = `${s.name} - ${s.specialty} (${s.department || 'Khoa tự do'})${expText}`;
-    if (!eligible) {
+    if (!eligible || isFull) {
       option.disabled = true;
       option.style.color = 'var(--text-light)';
     }
@@ -1008,13 +1027,29 @@ function openAssignSupervisorModal(id) {
   };
   
   select.innerHTML = '<option value="">-- Chọn người hướng dẫn --</option>';
+  const currentSupId = state.activePractitionerDetail && state.activePractitionerDetail.practitioner
+    ? state.activePractitionerDetail.practitioner.supervisor_id
+    : null;
+    
   state.supervisors.forEach(s => {
     const eligible = isSupervisorEligible(s.license_date);
-    const expText = eligible ? '' : ' (Chưa đủ 3 năm kinh nghiệm)';
+    const count = s.active_trainees || 0;
+    const isFull = count >= 5 && s.id !== currentSupId;
+    
+    let expText = eligible ? '' : ' (Chưa đủ 3 năm kinh nghiệm)';
+    if (isFull) {
+      expText += ' (Đầy - Đang HD 5 học viên)';
+    } else {
+      expText += ` (Đang HD: ${count}/5 học viên)`;
+    }
+    
     const option = document.createElement('option');
     option.value = s.id;
     option.innerText = `${s.name} - ${s.specialty} (${s.department || 'Khoa tự do'})${expText}`;
-    if (!eligible) option.disabled = true;
+    if (!eligible || isFull) {
+      option.disabled = true;
+      option.style.color = 'var(--text-light)';
+    }
     select.appendChild(option);
   });
   modal.classList.add('active');
@@ -1523,7 +1558,25 @@ function populateSupervisorSelect(selectedId, rotationName) {
   if (state.supervisors) {
     state.supervisors.forEach(s => {
       if (isSupervisorMatchingRotation(s, keyword)) {
-        selectSup.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
+        const eligible = isSupervisorEligible(s.license_date);
+        const count = s.active_trainees || 0;
+        const isFull = count >= 5 && s.id !== selectedId;
+        
+        let expText = eligible ? '' : ' (Chưa đủ 3 năm)';
+        if (isFull) {
+          expText += ' (Đầy - 5 học viên)';
+        } else {
+          expText += ` (Đang HD: ${count}/5)`;
+        }
+        
+        const option = document.createElement('option');
+        option.value = s.id;
+        option.innerText = `${s.name} - ${s.specialty}${expText}`;
+        if (!eligible || isFull) {
+          option.disabled = true;
+          option.style.color = 'var(--text-light)';
+        }
+        selectSup.appendChild(option);
       }
     });
   }

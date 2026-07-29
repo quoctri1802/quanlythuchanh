@@ -737,10 +737,14 @@ app.get('/api/users', async (req, res) => {
 app.get('/api/supervisors', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.*, COUNT(p.id) as active_trainees 
+      SELECT s.*, (
+        SELECT COUNT(DISTINCT p.id)
+        FROM practitioners p
+        LEFT JOIN practitioner_rotations r ON p.id = r.practitioner_id AND r.status = 'Đang thực hành'
+        WHERE p.status = 'Đang thực hành'
+          AND (p.supervisor_id = s.id OR r.supervisor_id = s.id)
+      ) as active_trainees
       FROM supervisors s
-      LEFT JOIN practitioners p ON s.id = p.supervisor_id AND p.status = 'Đang thực hành'
-      GROUP BY s.id
       ORDER BY s.name ASC
     `);
     res.json(result.rows);
@@ -897,6 +901,19 @@ app.post('/api/practitioners', async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    if (supervisor_id) {
+      const activeCountRes = await client.query(`
+        SELECT COUNT(DISTINCT p.id) as active_count
+        FROM practitioners p
+        LEFT JOIN practitioner_rotations r ON p.id = r.practitioner_id AND r.status = 'Đang thực hành'
+        WHERE p.status = 'Đang thực hành'
+          AND (p.supervisor_id = $1 OR r.supervisor_id = $1)
+      `, [supervisor_id]);
+      if (parseInt(activeCountRes.rows[0].active_count) >= 5) {
+        return res.status(400).json({ error: 'Người hướng dẫn này đã vượt quá số lượng 5 học viên hướng dẫn cùng lúc.' });
+      }
+    }
+
     // Create user account first
     const uRes = await client.query(
       `INSERT INTO users (username, password, role, name, email, phone)
@@ -1024,6 +1041,20 @@ app.put('/api/practitioners/:id', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    if (supervisor_id && (status === 'Đang thực hành')) {
+      const activeCountRes = await client.query(`
+        SELECT COUNT(DISTINCT p.id) as active_count
+        FROM practitioners p
+        LEFT JOIN practitioner_rotations r ON p.id = r.practitioner_id AND r.status = 'Đang thực hành'
+        WHERE p.status = 'Đang thực hành'
+          AND (p.supervisor_id = $1 OR r.supervisor_id = $1)
+          AND p.id <> $2
+      `, [supervisor_id, req.params.id]);
+      if (parseInt(activeCountRes.rows[0].active_count) >= 5) {
+        return res.status(400).json({ error: 'Người hướng dẫn này đã vượt quá số lượng 5 học viên hướng dẫn cùng lúc.' });
+      }
+    }
     const result = await client.query(
       `UPDATE practitioners 
        SET name=$1, dob=$2, gender=$3, email=$4, phone=$5, degree=$6, specialty=$7, program=$8, start_date=$9, supervisor_id=$10, status=$11, profile_status=$12, rejection_reason=$13, avatar_url=COALESCE($14, avatar_url), degree_scan_url=COALESCE($15, degree_scan_url)
@@ -1072,6 +1103,23 @@ app.post('/api/practitioners/:id/approve', async (req, res) => {
 app.post('/api/practitioners/:id/assign-supervisor', async (req, res) => {
   const { supervisorId } = req.body;
   try {
+    if (supervisorId) {
+      const pQuery = await pool.query('SELECT status FROM practitioners WHERE id = $1', [req.params.id]);
+      const pStatus = pQuery.rows.length > 0 ? pQuery.rows[0].status : '';
+      if (pStatus === 'Đang thực hành') {
+        const activeCountRes = await pool.query(`
+          SELECT COUNT(DISTINCT p.id) as active_count
+          FROM practitioners p
+          LEFT JOIN practitioner_rotations r ON p.id = r.practitioner_id AND r.status = 'Đang thực hành'
+          WHERE p.status = 'Đang thực hành'
+            AND (p.supervisor_id = $1 OR r.supervisor_id = $1)
+            AND p.id <> $2
+        `, [supervisorId, req.params.id]);
+        if (parseInt(activeCountRes.rows[0].active_count) >= 5) {
+          return res.status(400).json({ error: 'Người hướng dẫn này đã vượt quá số lượng 5 học viên hướng dẫn cùng lúc.' });
+        }
+      }
+    }
     const result = await pool.query(
       'UPDATE practitioners SET supervisor_id = $1 WHERE id = $2 RETURNING *',
       [supervisorId, req.params.id]
@@ -1192,6 +1240,20 @@ app.put('/api/rotations/:id', async (req, res) => {
       return res.status(404).json({ error: 'Rotation not found' });
     }
     const practitionerId = rRes.rows[0].practitioner_id;
+
+    if (supervisor_id && (status === 'Đang thực hành')) {
+      const activeCountRes = await client.query(`
+        SELECT COUNT(DISTINCT p.id) as active_count
+        FROM practitioners p
+        LEFT JOIN practitioner_rotations r ON p.id = r.practitioner_id AND r.status = 'Đang thực hành'
+        WHERE p.status = 'Đang thực hành'
+          AND (p.supervisor_id = $1 OR r.supervisor_id = $1)
+          AND p.id <> $2
+      `, [supervisor_id, practitionerId]);
+      if (parseInt(activeCountRes.rows[0].active_count) >= 5) {
+        return res.status(400).json({ error: 'Người hướng dẫn này đã vượt quá số lượng 5 học viên hướng dẫn cùng lúc.' });
+      }
+    }
 
     const result = await client.query(
       `UPDATE practitioner_rotations
