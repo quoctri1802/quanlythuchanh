@@ -117,7 +117,37 @@ async function seedSupervisors(client) {
     { name: 'Trương Thị Thu Yến', license_number: '002643/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'truongthithuyen' },
     { name: 'Tống Thị Thanh Thủy', license_number: '002595/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Nội tổng hợp', username: 'tongthithanhthuy' },
     { name: 'Nguyễn Thị Phương Thảo', license_number: '004814/ĐNA-CCHN', license_date: '2014-11-18', specialty: 'Điều dưỡng', department: 'Khoa Ngoại chấn thương', username: 'nguyenthiphuongthao' },
-    { name: 'Mai Thị Phương', license_number: '002571/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'maithiphuong' }
+    { name: 'Mai Thị Phương', license_number: '002571/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'maithiphuong' },
+
+    // XIII. Điều dưỡng (Hồi sức / Gây mê / Nha khoa) - thêm 8 người
+    { name: 'Nguyễn Thị Mỹ Loan', license_number: '002806/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'nguyenthimyloan' },
+    { name: 'Lê Thị Diệu Loan', license_number: '008858/ĐNA-CCHN', license_date: '2020-06-30', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'lethidieuloan' },
+    { name: 'Phạm Thị Cẩm Thảo', license_number: '002784/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'phamthicamthao' },
+    { name: 'Đồng Thị Kim Dung', license_number: '002723/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'dongthikimdung' },
+    { name: 'Võ Thị Quỳnh Trang', license_number: '002725/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'vothiquynhtrang' },
+    { name: 'Mạc Như Quang', license_number: '006678/ĐNA-CCHN', license_date: '2017-05-15', specialty: 'Điều dưỡng', department: 'Khoa Hồi sức cấp cứu', username: 'macnhuquang' },
+    { name: 'Phạm Hoàng Phúc', license_number: '008793/ĐNA-CCHN', license_date: '2020-06-05', specialty: 'Điều dưỡng', department: 'Khoa Răng Hàm Mặt', username: 'phamhoangphuc' },
+    { name: 'Nguyễn Trần Uy Kha', license_number: '002704/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Điều dưỡng', department: 'Khoa Răng Hàm Mặt', username: 'nguyentranuykha' },
+
+    // XIV. Hộ sinh - 8 người
+    { name: 'Hoàng Thị Minh Phương', license_number: '002765/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'hoangthiminhphuong' },
+    { name: 'Nguyễn Thị Đỗ Quyên', license_number: '002862/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'nguyenthidoquyen' },
+    { name: 'Trương Thị Lệ Tảo', license_number: '002632/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'truongthiletao' },
+    { name: 'Dương Thị Ái Hương', license_number: '002906/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'duongthiaihuong' },
+    { name: 'Lê Thị Phượng', license_number: '003744/ĐNA-CCHN', license_date: '2014-11-04', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'lethiphuong' },
+    { name: 'Trần Thị Mẫn Linh', license_number: '002714/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'tranthimanlinh' },
+    { name: 'Nguyễn Thị Thanh Hiệp', license_number: '002631/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'nguyenthithanhhiep' },
+    { name: 'Ngô Thị Thanh Thủy', license_number: '002860/ĐNA-CCHN', license_date: '2013-12-27', specialty: 'Hộ sinh', department: 'Khoa Sản phụ khoa', username: 'ngothithanhthuy' },
+
+    // XV. Kỹ thuật viên Xét nghiệm - 8 người
+    { name: 'Trần Quang Vũ', license_number: '002602/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'tranquangvu' },
+    { name: 'Trần Thị Hòa', license_number: '006734/ĐNA-CCHN', license_date: '2017-05-06', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'tranthihoa' },
+    { name: 'Nguyễn Đình Khánh', license_number: '004793/ĐNA-CCHN', license_date: '2014-11-18', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'nguyendinhkhanh' },
+    { name: 'Mai Thị Bích Quyên', license_number: '002617/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'maithibichquyen' },
+    { name: 'Nguyễn Thị Phú', license_number: '0005476/ĐNA-CCHN', license_date: '2015-08-14', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'nguyenthiphu' },
+    { name: 'Nguyễn Thị Thu Thủy', license_number: '002605/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'nguyenthithuthuy' },
+    { name: 'Lê Thị Thùy Chiêu', license_number: '002701/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'lethithuychieu' },
+    { name: 'Trần Thị Thập Linh', license_number: '004591/ĐNA-CCHN', license_date: '2014-09-06', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'tranthithaplinh' }
   ];
 
   for (const s of supervisorList) {
@@ -348,6 +378,8 @@ async function initializeDatabase() {
       'Khoa Y học cổ truyền',
       'Khoa Da liễu',
       'Khoa Dược',
+      'Khoa Xét nghiệm',
+      'Khoa Chẩn đoán hình ảnh',
       'Phòng Đào tạo'
     ];
     for (const dept of defaultDepts) {
@@ -1416,12 +1448,12 @@ app.post('/api/evaluations', async (req, res) => {
         if (matchedKeyword) {
           let isMatch = matchedKeyword.match.some(m => supervisorSpecialty.includes(m));
           
-          // Nurse supervisors are allowed to evaluate clinical stages for nurse/midwife/tech trainees
-          if (supervisorSpecialty.includes('điều dưỡng')) {
+          // Nurse, midwife, and technician supervisors are allowed to evaluate clinical stages for nurse/midwife/tech trainees
+          if (supervisorSpecialty.includes('điều dưỡng') || supervisorSpecialty.includes('hộ sinh') || supervisorSpecialty.includes('kỹ thuật')) {
             const pracQuery = await pool.query('SELECT specialty FROM practitioners WHERE id = $1', [practitioner_id]);
             if (pracQuery.rows.length > 0) {
               const pracSpecialty = pracQuery.rows[0].specialty.toLowerCase();
-              if (pracSpecialty.includes('điều dưỡng') || pracSpecialty.includes('hộ sinh') || pracSpecialty.includes('kỹ thuật y')) {
+              if (pracSpecialty.includes('điều dưỡng') || pracSpecialty.includes('hộ sinh') || pracSpecialty.includes('kỹ thuật')) {
                 isMatch = true;
               }
             }
