@@ -77,7 +77,16 @@ async function seedSupervisors(client) {
 
     // X. Răng hàm mặt
     { name: 'Võ Thị Mỹ Hiệu', license_number: '005742/ĐNA-CCHN', license_date: '2015-12-04', specialty: 'Răng hàm mặt', department: 'Khoa Răng Hàm Mặt', username: 'vothimyhieu' },
-    { name: 'Lê Hồng Bảo Ngọc', license_number: '008672/ĐNA-CCHN', license_date: '2020-03-26', specialty: 'Răng hàm mặt', department: 'Khoa Răng Hàm Mặt', username: 'lehongbaongoc' }
+    { name: 'Lê Hồng Bảo Ngọc', license_number: '008672/ĐNA-CCHN', license_date: '2020-03-26', specialty: 'Răng hàm mặt', department: 'Khoa Răng Hàm Mặt', username: 'lehongbaongoc' },
+
+    // XI. Dược sĩ
+    { name: 'Phan Thị Thu Hương', license_number: '0331/ĐNA-CCHND', license_date: '2014-11-14', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'phanthithuhuong' },
+    { name: 'Nguyễn Thị Tuyết Nhung', license_number: '0016/CCHN-D-SYT-ĐNA', license_date: '2017-12-07', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'nguyenthituyetnhung' },
+    { name: 'Nguyễn Thị Thanh Tùng', license_number: '0588/ĐNA-CCHND', license_date: '2016-07-05', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'nguyenthithanhtung' },
+    { name: 'Lê Thị Kiều Trang', license_number: '0139/CCHN-D-SYT-ĐNA', license_date: '2020-07-07', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'lethikieutrang' },
+    { name: 'Lê Thị Diễm Trinh', license_number: '0590/ĐNA-CCHND', license_date: '2016-07-05', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'lethidiemtrinh' },
+    { name: 'Trần Viết Thành', license_number: '1339/CCHN-D-SYT-ĐNA', license_date: '2021-04-05', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'tranvietthanh' },
+    { name: 'Chế Thị Mỹ Chi', license_number: '1384/CCHN-D-SYT-ĐNA', license_date: '2021-05-14', specialty: 'Dược sĩ', department: 'Khoa Dược', username: 'chethimychi' }
   ];
 
   for (const s of supervisorList) {
@@ -307,6 +316,7 @@ async function initializeDatabase() {
       'Khoa Mắt',
       'Khoa Y học cổ truyền',
       'Khoa Da liễu',
+      'Khoa Dược',
       'Phòng Đào tạo'
     ];
     for (const dept of defaultDepts) {
