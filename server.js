@@ -358,6 +358,14 @@ async function initializeDatabase() {
       ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS rating_discipline VARCHAR(50);
     `);
 
+    // 9. Create System Settings / Metadata Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS system_metadata (
+        key VARCHAR(50) PRIMARY KEY,
+        value VARCHAR(255)
+      );
+    `);
+
     console.log('Seeding administrative accounts...');
 
     // Seed Admin (SysAdmin) Account
@@ -374,32 +382,43 @@ async function initializeDatabase() {
       ON CONFLICT (username) DO NOTHING;
     `);
 
-    console.log('Seeding default departments...');
-    const defaultDepts = [
-      'Khoa Nội tổng hợp',
-      'Khoa Ngoại chấn thương',
-      'Khoa Sản phụ khoa',
-      'Khoa Nhi',
-      'Khoa Hồi sức cấp cứu',
-      'Khoa Cấp cứu ngoại viện',
-      'Khoa Dinh dưỡng lâm sàng',
-      'Khoa Tâm lý lâm sàng',
-      'Khoa Tai Mũi Họng',
-      'Khoa Răng Hàm Mặt',
-      'Khoa Mắt',
-      'Khoa Y học cổ truyền',
-      'Khoa Da liễu',
-      'Khoa Dược',
-      'Khoa Xét nghiệm',
-      'Khoa Chẩn đoán hình ảnh',
-      'Phòng Đào tạo'
-    ];
-    for (const dept of defaultDepts) {
-      await client.query('INSERT INTO departments (name) VALUES ($1) ON CONFLICT DO NOTHING', [dept]);
-    }
+    // Check if initial seeding has already been completed
+    const seedCheck = await client.query("SELECT value FROM system_metadata WHERE key = 'initial_seed_completed'");
+    const isSeedCompleted = seedCheck.rows.length > 0 && seedCheck.rows[0].value === 'true';
 
-    console.log('Seeding default supervisors from official list...');
-    await seedSupervisors(client);
+    if (!isSeedCompleted) {
+      console.log('Seeding default departments...');
+      const defaultDepts = [
+        'Khoa Nội tổng hợp',
+        'Khoa Ngoại chấn thương',
+        'Khoa Sản phụ khoa',
+        'Khoa Nhi',
+        'Khoa Hồi sức cấp cứu',
+        'Khoa Cấp cứu ngoại viện',
+        'Khoa Dinh dưỡng lâm sàng',
+        'Khoa Tâm lý lâm sàng',
+        'Khoa Tai Mũi Họng',
+        'Khoa Răng Hàm Mặt',
+        'Khoa Mắt',
+        'Khoa Y học cổ truyền',
+        'Khoa Da liễu',
+        'Khoa Dược',
+        'Khoa Xét nghiệm',
+        'Khoa Chẩn đoán hình ảnh',
+        'Phòng Đào tạo'
+      ];
+      for (const dept of defaultDepts) {
+        await client.query('INSERT INTO departments (name) VALUES ($1) ON CONFLICT DO NOTHING', [dept]);
+      }
+
+      console.log('Seeding default supervisors from official list...');
+      await seedSupervisors(client);
+
+      await client.query("INSERT INTO system_metadata (key, value) VALUES ('initial_seed_completed', 'true') ON CONFLICT (key) DO UPDATE SET value = 'true'");
+      console.log('Initial seeding completed successfully and flagged.');
+    } else {
+      console.log('Initial seeding already completed previously. Skipping departments and supervisors seeding to preserve user modifications.');
+    }
 
     console.log('Production database tables initialized cleanly.');
     await client.query('COMMIT');
