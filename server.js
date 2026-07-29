@@ -147,7 +147,19 @@ async function seedSupervisors(client) {
     { name: 'Nguyễn Thị Phú', license_number: '0005476/ĐNA-CCHN', license_date: '2015-08-14', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'nguyenthiphu' },
     { name: 'Nguyễn Thị Thu Thủy', license_number: '002605/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'nguyenthithuthuy' },
     { name: 'Lê Thị Thùy Chiêu', license_number: '002701/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'lethithuychieu' },
-    { name: 'Trần Thị Thập Linh', license_number: '004591/ĐNA-CCHN', license_date: '2014-09-06', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'tranthithaplinh' }
+    { name: 'Trần Thị Thập Linh', license_number: '004591/ĐNA-CCHN', license_date: '2014-09-06', specialty: 'Kỹ thuật viên Xét nghiệm', department: 'Khoa Xét nghiệm', username: 'tranthithaplinh' },
+
+    // XVI. Kỹ thuật viên Hình ảnh - 5 người
+    { name: 'Trần Văn Học', license_number: '002616/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Hình ảnh', department: 'Khoa Chẩn đoán hình ảnh', username: 'tranvanhoc' },
+    { name: 'Bùi Triệu Phú', license_number: '002614/ĐNA-CCHN', license_date: '2023-12-29', specialty: 'Kỹ thuật viên Hình ảnh', department: 'Khoa Chẩn đoán hình ảnh', username: 'buitrieuphu' },
+    { name: 'Thái Anh Tuân', license_number: '002604/ĐNA-CCHN', license_date: '2023-12-29', specialty: 'Kỹ thuật viên Hình ảnh', department: 'Khoa Chẩn đoán hình ảnh', username: 'thaianhtuan' },
+    { name: 'Nguyễn Quốc Hoàng', license_number: '0005174/ĐNA-CCHN', license_date: '2015-05-20', specialty: 'Kỹ thuật viên Hình ảnh', department: 'Khoa Chẩn đoán hình ảnh', username: 'nguyenquochoang' },
+    { name: 'Tạ Thị Bình', license_number: '005448/ĐNA-CCHN', license_date: '2015-08-14', specialty: 'Kỹ thuật viên Hình ảnh', department: 'Khoa Chẩn đoán hình ảnh', username: 'tathibinh' },
+
+    // XVII. Kỹ thuật viên Phục hồi chức năng - 3 người
+    { name: 'Nguyễn Thị Lợi', license_number: '002603/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Phục hồi chức năng', department: 'Khoa YHCT-PHCN', username: 'nguyenthiloi' },
+    { name: 'Trương Thị Thu Thủy', license_number: '002915/ĐNA-CCHN', license_date: '2022-11-18', specialty: 'Kỹ thuật viên Phục hồi chức năng', department: 'Khoa YHCT-PHCN', username: 'truongthithuthuy' },
+    { name: 'Nguyễn Thị Đằng', license_number: '002711/ĐNA-CCHN', license_date: '2013-12-12', specialty: 'Kỹ thuật viên Phục hồi chức năng', department: 'Khoa YHCT-PHCN', username: 'nguyenthidang' }
   ];
 
   for (const s of supervisorList) {
