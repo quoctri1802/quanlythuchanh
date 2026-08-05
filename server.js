@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
+const ExcelJS = require('exceljs');
 require('dotenv').config();
 
 const app = express();
@@ -1928,5 +1929,95 @@ app.post('/api/system/reset-practitioners', async (req, res) => {
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
+  }
+});
+
+// A.05: Download Excel Template with Data Validations (dropdowns)
+app.get('/api/templates/excel', async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('DanhSachHocVien');
+    const refSheet = workbook.addWorksheet('DanhMucChucDanh');
+
+    // Hide refSheet so the user doesn't see a messy metadata sheet
+    refSheet.state = 'hidden';
+
+    // Populate refSheet options
+    refSheet.getCell('A1').value = 'Chức danh đăng ký';
+    const specialties = [
+      "Bác sĩ",
+      "Bác sĩ Răng hàm mặt",
+      "Bác sĩ Y học cổ truyền",
+      "Bác sĩ Y học dự phòng",
+      "Y sĩ",
+      "Y sĩ Y học cổ truyền",
+      "Dược sĩ",
+      "Điều dưỡng đa khoa",
+      "Điều dưỡng chuyên ngành phụ sản",
+      "Kỹ thuật viên Xét nghiệm",
+      "Kỹ thuật viên Hình ảnh Y học",
+      "Kỹ thuật viên Phục hồi chức năng",
+      "Hộ sinh",
+      "Điều dưỡng",
+      "Kỹ thuật y",
+      "Cấp cứu viên ngoại viện",
+      "Tâm lý lâm sàng"
+    ];
+    specialties.forEach((s, idx) => {
+      refSheet.getCell(`A${idx + 2}`).value = s;
+    });
+
+    // Populate columns on worksheet
+    worksheet.columns = [
+      { header: 'Họ và tên', key: 'name', width: 25 },
+      { header: 'Ngày sinh (DD-MM-YYYY)', key: 'dob', width: 22 },
+      { header: 'Giới tính', key: 'gender', width: 12 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Số điện thoại', key: 'phone', width: 18 },
+      { header: 'Văn bằng chuyên môn', key: 'degree', width: 22 },
+      { header: 'Chức danh đăng ký', key: 'specialty', width: 28 },
+      { header: 'Khung thực hành (ND96/TT21)', key: 'program', width: 28 },
+      { header: 'Ngày bắt đầu (DD-MM-YYYY)', key: 'start_date', width: 22 }
+    ];
+
+    // Style headers
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add demo rows
+    worksheet.addRow(["Nguyễn Văn An", "15-05-1998", "Nam", "vanan@lienchieu.gov.vn", "0912345678", "Bác sĩ y khoa", "Bác sĩ", "ND96", "01-08-2026"]);
+    worksheet.addRow(["Trần Thị Bình", "20-02-2000", "Nữ", "thibinh@lienchieu.gov.vn", "0987654321", "Cử nhân điều dưỡng", "Điều dưỡng đa khoa", "ND96", "01-08-2026"]);
+
+    // Apply validations G2:G100, C2:C100, H2:H100
+    for (let i = 2; i <= 100; i++) {
+      // Column G (Chức danh đăng ký) from list in refSheet
+      worksheet.getCell(`G${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['DanhMucChucDanh!$A$2:$A$18']
+      };
+
+      // Column C (Giới tính)
+      worksheet.getCell(`C${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"Nam,Nữ"']
+      };
+
+      // Column H (Khung thực hành)
+      worksheet.getCell(`H${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"ND96,TT21"']
+      };
+    }
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=mau_danh_sach_hoc_vien.xlsx');
+    
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
