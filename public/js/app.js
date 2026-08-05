@@ -2485,13 +2485,68 @@ document.querySelector('#modal-import-practitioners .modal-close-btn').addEventL
 // Download Excel template
 document.getElementById('btn-download-excel-template').addEventListener('click', () => {
   const wb = XLSX.utils.book_new();
-  const data = [
-    ["Họ và tên", "Ngày sinh (YYYY-MM-DD)", "Giới tính", "Email", "Số điện thoại", "Văn bằng chuyên môn", "Chức danh đăng ký", "Khung thực hành (ND96/TT21)", "Ngày bắt đầu (YYYY-MM-DD)"],
-    ["Nguyễn Văn An", "1998-05-15", "Nam", "vanan@lienchieu.gov.vn", "0912345678", "Bác sĩ y khoa", "Bác sĩ", "ND96", "2026-08-01"],
-    ["Trần Thị Bình", "2000-02-20", "Nữ", "thibinh@lienchieu.gov.vn", "0987654321", "Cử nhân điều dưỡng", "Điều dưỡng", "ND96", "2026-08-01"]
+  
+  // Sheet 1: Main template data
+  const headers = ["Họ và tên", "Ngày sinh (DD-MM-YYYY)", "Giới tính", "Email", "Số điện thoại", "Văn bằng chuyên môn", "Chức danh đăng ký", "Khung thực hành (ND96/TT21)", "Ngày bắt đầu (DD-MM-YYYY)"];
+  const templateData = [
+    headers,
+    ["Nguyễn Văn An", "15-05-1998", "Nam", "vanan@lienchieu.gov.vn", "0912345678", "Bác sĩ y khoa", "Bác sĩ", "ND96", "01-08-2026"],
+    ["Trần Thị Bình", "20-02-2000", "Nữ", "thibinh@lienchieu.gov.vn", "0987654321", "Cử nhân điều dưỡng", "Điều dưỡng đa khoa", "ND96", "01-08-2026"]
   ];
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  XLSX.utils.book_append_sheet(wb, ws, "DanhSachHocVien");
+  const ws1 = XLSX.utils.aoa_to_sheet(templateData);
+  
+  // Sheet 2: Danh mục (Options)
+  const specialties = [
+    ["Chức danh đăng ký"],
+    ["Bác sĩ"],
+    ["Bác sĩ Răng hàm mặt"],
+    ["Bác sĩ Y học cổ truyền"],
+    ["Bác sĩ Y học dự phòng"],
+    ["Y sĩ"],
+    ["Y sĩ Y học cổ truyền"],
+    ["Dược sĩ"],
+    ["Điều dưỡng đa khoa"],
+    ["Điều dưỡng chuyên ngành phụ sản"],
+    ["Kỹ thuật viên Xét nghiệm"],
+    ["Kỹ thuật viên Hình ảnh Y học"],
+    ["Kỹ thuật viên Phục hồi chức năng"],
+    ["Hộ sinh"],
+    ["Điều dưỡng"],
+    ["Kỹ thuật y"],
+    ["Cấp cứu viên ngoại viện"],
+    ["Tâm lý lâm sàng"]
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(specialties);
+  
+  XLSX.utils.book_append_sheet(wb, ws1, "DanhSachHocVien");
+  XLSX.utils.book_append_sheet(wb, ws2, "DanhMucChucDanh");
+  
+  // Add data validation to column G (Chức danh đăng ký), C (Giới tính) and H (Khung thực hành) on the first sheet
+  ws1['!dataValidation'] = [
+    {
+      sqref: 'G2:G100',
+      type: 'list',
+      allowBlank: true,
+      showInputMessage: true,
+      showErrorMessage: true,
+      errorTitle: 'Lỗi nhập liệu',
+      error: 'Vui lòng chọn chức danh từ danh mục.',
+      formula1: 'DanhMucChucDanh!$A$2:$A$18'
+    },
+    {
+      sqref: 'C2:C100',
+      type: 'list',
+      allowBlank: true,
+      formula1: '"Nam,Nữ"'
+    },
+    {
+      sqref: 'H2:H100',
+      type: 'list',
+      allowBlank: true,
+      formula1: '"ND96,TT21"'
+    }
+  ];
+  
   XLSX.writeFile(wb, "mau_danh_sach_hoc_vien.xlsx");
 });
 
@@ -2516,15 +2571,36 @@ document.getElementById('import-file-input').addEventListener('change', (e) => {
         const cols = rows[i];
         if (!cols || cols.length === 0 || !cols[0]) continue;
         
-        // Helper to format date properly if Excel date serial is used
+        // Helper to format date properly (supporting DD-MM-YYYY, DD/MM/YYYY and Excel serials)
         const formatExcelDate = (val) => {
           if (!val) return '';
+          let dateStr = '';
           if (typeof val === 'number') {
             // Excel serial date
             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-            return date.toISOString().split('T')[0];
+            dateStr = date.toISOString().split('T')[0];
+          } else {
+            dateStr = String(val).trim();
           }
-          return String(val).trim();
+          
+          // Parse DD-MM-YYYY or DD/MM/YYYY to YYYY-MM-DD
+          const match = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+          if (match) {
+            const day = match[1].padStart(2, '0');
+            const month = match[2].padStart(2, '0');
+            const year = match[3];
+            return `${year}-${month}-${day}`;
+          }
+          
+          const matchSql = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+          if (matchSql) {
+            const year = matchSql[1];
+            const month = matchSql[2].padStart(2, '0');
+            const day = matchSql[3].padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          }
+          
+          return dateStr;
         };
 
         parsed.push({
