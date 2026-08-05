@@ -1581,6 +1581,38 @@ app.post('/api/evaluations', async (req, res) => {
     rating_discipline
   } = req.body;
   try {
+    // 1. Enforce assigned stage supervisor check: "người hướng dẫn giai đoạn nào thì được đánh giá học viên giai đoạn đó"
+    if (department !== 'Đánh giá chung') {
+      const rotCheck = await pool.query(
+        'SELECT supervisor_id FROM practitioner_rotations WHERE practitioner_id = $1 AND name = $2',
+        [practitioner_id, department]
+      );
+      if (rotCheck.rows.length > 0) {
+        const assignedSupervisorId = rotCheck.rows[0].supervisor_id;
+        if (!assignedSupervisorId) {
+          return res.status(400).json({
+            error: `Giai đoạn thực hành '${department}' chưa được phân công người hướng dẫn.`
+          });
+        }
+        if (assignedSupervisorId !== evaluator_id) {
+          return res.status(400).json({
+            error: `Bạn không phải là người hướng dẫn được phân công cho giai đoạn '${department}'.`
+          });
+        }
+      }
+    } else {
+      // For "Đánh giá chung", evaluator must be assigned to at least one stage of this practitioner
+      const rotCheckAny = await pool.query(
+        'SELECT COUNT(*) as count FROM practitioner_rotations WHERE practitioner_id = $1 AND supervisor_id = $2',
+        [practitioner_id, evaluator_id]
+      );
+      if (parseInt(rotCheckAny.rows[0].count) === 0) {
+        return res.status(400).json({
+          error: `Bạn phải là người hướng dẫn của ít nhất một giai đoạn thực hành để thực hiện đánh giá chung.`
+        });
+      }
+    }
+
     // Validate evaluator specialty matches the department specialty if not "Đánh giá chung"
     if (department !== 'Đánh giá chung' && evaluator_id) {
       const supQuery = await pool.query('SELECT specialty, name FROM supervisors WHERE id = $1', [evaluator_id]);
@@ -1663,6 +1695,112 @@ app.post('/api/evaluations', async (req, res) => {
       ]
     );
     res.status(201).json(resEval.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update an evaluation
+app.put('/api/evaluations/:id', async (req, res) => {
+  const { 
+    department, 
+    evaluation_type, 
+    rating_specialty, 
+    rating_ethics, 
+    rating_law, 
+    rating_communication, 
+    rating_safety, 
+    result, 
+    comment, 
+    evaluator_id,
+    rating_knowledge,
+    rating_skills,
+    rating_experience,
+    rating_growth,
+    rating_attitude,
+    rating_discipline
+  } = req.body;
+  try {
+    // 1. Get current evaluation
+    const currRes = await pool.query('SELECT * FROM evaluations WHERE id = $1', [req.params.id]);
+    if (currRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Evaluation not found' });
+    }
+    const currEval = currRes.rows[0];
+
+    // 2. Validate matching supervisor as requested
+    if (department !== 'Đánh giá chung' && evaluator_id) {
+      const rotCheck = await pool.query(
+        'SELECT supervisor_id FROM practitioner_rotations WHERE practitioner_id = $1 AND name = $2',
+        [currEval.practitioner_id, department]
+      );
+      if (rotCheck.rows.length > 0) {
+        const assignedSupervisorId = rotCheck.rows[0].supervisor_id;
+        if (!assignedSupervisorId) {
+          return res.status(400).json({
+            error: `Giai đoạn thực hành '${department}' chưa được phân công người hướng dẫn.`
+          });
+        }
+        if (assignedSupervisorId !== evaluator_id) {
+          return res.status(400).json({
+            error: `Bạn không phải là người hướng dẫn được phân công cho giai đoạn '${department}'.`
+          });
+        }
+      }
+    } else if (evaluator_id) {
+      // For "Đánh giá chung", evaluator must be assigned to at least one stage of this practitioner
+      const rotCheckAny = await pool.query(
+        'SELECT COUNT(*) as count FROM practitioner_rotations WHERE practitioner_id = $1 AND supervisor_id = $2',
+        [currEval.practitioner_id, evaluator_id]
+      );
+      if (parseInt(rotCheckAny.rows[0].count) === 0) {
+        return res.status(400).json({
+          error: `Bạn phải là người hướng dẫn của ít nhất một giai đoạn thực hành để thực hiện đánh giá chung.`
+        });
+      }
+    }
+
+    const resultUpdate = await pool.query(
+      `UPDATE evaluations
+       SET department=$1, evaluation_type=$2, rating_specialty=$3, rating_ethics=$4, rating_law=$5, rating_communication=$6, rating_safety=$7,
+           result=$8, comment=$9, evaluator_id=$10, rating_knowledge=$11, rating_skills=$12, rating_experience=$13, rating_growth=$14,
+           rating_attitude=$15, rating_discipline=$16, evaluation_date=CURRENT_DATE
+       WHERE id=$17 RETURNING *`,
+      [
+        department,
+        evaluation_type || 'Định kỳ',
+        rating_specialty,
+        rating_ethics,
+        rating_law,
+        rating_communication,
+        rating_safety,
+        result,
+        comment,
+        evaluator_id,
+        rating_knowledge,
+        rating_skills,
+        rating_experience,
+        rating_growth,
+        rating_attitude,
+        rating_discipline,
+        req.params.id
+      ]
+    );
+
+    res.json(resultUpdate.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete an evaluation
+app.delete('/api/evaluations/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM evaluations WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Evaluation not found' });
+    }
+    res.json({ message: 'Evaluation deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

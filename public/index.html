@@ -330,7 +330,7 @@
                   <span class="profile-meta-label">Khung pháp lý</span>
                   <span class="profile-meta-value" id="det-program">NĐ 96/2023/NĐ-CP</span>
                 </li>
-                <li class="profile-meta-item">
+                <li class="profile-meta-item" style="display: none;">
                   <span class="profile-meta-label">Bác sĩ hướng dẫn</span>
                   <span class="profile-meta-value" id="det-supervisor" style="color: var(--primary); font-weight:700;">BS. Nguyễn Văn Hùng</span>
                 </li>
@@ -796,9 +796,9 @@
             </div>
           </div>
           
-          <div class="form-group" style="margin-top: 6px;">
-            <label for="reg-supervisor">Bác sĩ hướng dẫn thực hành *</label>
-            <select id="reg-supervisor" required>
+          <div class="form-group" style="margin-top: 6px; display: none;">
+            <label for="reg-supervisor">Bác sĩ hướng dẫn thực hành</label>
+            <select id="reg-supervisor">
               <option value="">-- Phân công người hướng dẫn chuyên môn --</option>
             </select>
           </div>
@@ -1003,7 +1003,7 @@
   <div class="modal" id="modal-add-evaluation">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Lập Bảng Đánh giá thực hành chuyên môn</h3>
+        <h3 id="evaluation-modal-title">Lập Bảng Đánh giá thực hành chuyên môn</h3>
         <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form id="form-add-evaluation">

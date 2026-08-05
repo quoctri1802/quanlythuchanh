@@ -1836,6 +1836,8 @@ document.getElementById('form-approve-log').addEventListener('submit', async (e)
 });
 
 // Tab 3: Evaluations C.01/C.02
+let evaluationIdToEdit = null;
+
 function renderEvaluationsTabContent() {
   const { evaluations } = state.activePractitionerDetail;
   const container = document.getElementById('evaluations-list-container');
@@ -1845,6 +1847,8 @@ function renderEvaluationsTabContent() {
     container.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-secondary);">Chưa có phiếu đánh giá định kỳ/cuối khóa</td></tr>';
     return;
   }
+
+  const isManager = state.currentUser.role === 'Cán bộ quản lý';
 
   evaluations.forEach(e => {
     const tr = document.createElement('tr');
@@ -1858,6 +1862,21 @@ function renderEvaluationsTabContent() {
           Kiến thức: <strong>${e.rating_knowledge}</strong> | Kỹ năng: <strong>${e.rating_skills}</strong> | Kinh nghiệm: <strong>${e.rating_experience}</strong><br>
           Học hỏi: <strong>${e.rating_growth}</strong> | Thái độ: <strong>${e.rating_attitude}</strong> | Kỷ luật: <strong>${e.rating_discipline}</strong>
         </div>
+      `;
+    }
+
+    const isEvaluator = state.currentSupervisor && state.currentSupervisor.id === e.evaluator_id;
+    const canModify = isManager || isEvaluator;
+
+    let modifyButtons = '';
+    if (canModify) {
+      modifyButtons = `
+        <button class="btn btn-secondary btn-edit-eval" style="padding: 4px 8px; font-size: 11.5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;">
+          <i class="fa-solid fa-pen"></i> Sửa
+        </button>
+        <button class="btn btn-secondary btn-delete-eval" style="padding: 4px 8px; font-size: 11.5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; color: var(--danger);">
+          <i class="fa-solid fa-trash"></i> Xóa
+        </button>
       `;
     }
 
@@ -1876,6 +1895,7 @@ function renderEvaluationsTabContent() {
         <button class="btn btn-secondary btn-print-eval" style="padding: 4px 8px; font-size: 11.5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
           <i class="fa-solid fa-print"></i> Xem & In
         </button>
+        ${modifyButtons}
       </td>
     `;
 
@@ -1893,8 +1913,84 @@ function renderEvaluationsTabContent() {
       window.print();
     });
 
+    if (canModify) {
+      tr.querySelector('.btn-edit-eval')?.addEventListener('click', () => {
+        openEditEvaluationModal(e);
+      });
+      tr.querySelector('.btn-delete-eval')?.addEventListener('click', async () => {
+        const confirmDel = confirm(`Bạn có chắc chắn muốn xóa phiếu đánh giá của giai đoạn "${e.department}"?`);
+        if (!confirmDel) return;
+        try {
+          const res = await fetch(`/api/evaluations/${e.id}`, { method: 'DELETE' });
+          if (res.ok) {
+            await refreshActivePractitionerDetail();
+            renderEvaluationsTabContent();
+          } else {
+            const err = await res.json();
+            alert('Lỗi xóa đánh giá: ' + err.error);
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+        }
+      });
+    }
+
     container.appendChild(tr);
   });
+}
+
+function openEditEvaluationModal(e) {
+  evaluationIdToEdit = e.id;
+  document.getElementById('evaluation-modal-title').innerText = 'Cập nhật Phiếu Đánh giá Chuyên môn';
+
+  document.getElementById('eval-type').value = e.evaluation_type;
+  
+  // Populate departments select
+  const selectDept = document.getElementById('eval-department');
+  selectDept.innerHTML = '';
+  if (state.activePractitionerDetail.rotations && state.activePractitionerDetail.rotations.length > 0) {
+    state.activePractitionerDetail.rotations.forEach(r => {
+      if (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor) {
+        if (r.supervisor_id === state.currentSupervisor.id) {
+          selectDept.innerHTML += `<option value="${r.name}">${r.name}</option>`;
+        }
+      } else {
+        selectDept.innerHTML += `<option value="${r.name}">${r.name}</option>`;
+      }
+    });
+  }
+  const isAssignedToAny = state.activePractitionerDetail.rotations.some(r => r.supervisor_id === e.evaluator_id);
+  if (state.currentUser.role !== 'Người hướng dẫn' || isAssignedToAny) {
+    selectDept.innerHTML += `<option value="Đánh giá chung">Đánh giá chung</option>`;
+  }
+  
+  selectDept.value = e.department;
+
+  // Populate and filter evaluator dropdown
+  filterEvaluatorDropdownByDepartment(e.department);
+  document.getElementById('eval-evaluator').value = e.evaluator_id;
+
+  document.getElementById('eval-spec').value = e.rating_specialty || '';
+  document.getElementById('eval-ethics').value = e.rating_ethics || '';
+  document.getElementById('eval-law').value = e.rating_law || '';
+  document.getElementById('eval-comm').value = e.rating_communication || '';
+  document.getElementById('eval-safety').value = e.rating_safety || '';
+  document.getElementById('eval-result').value = e.result || 'Đạt';
+  document.getElementById('eval-comment').value = e.comment || '';
+
+  document.getElementById('eval-knowledge').value = e.rating_knowledge || '';
+  document.getElementById('eval-skills').value = e.rating_skills || '';
+  document.getElementById('eval-experience').value = e.rating_experience || '';
+  document.getElementById('eval-growth').value = e.rating_growth || '';
+  document.getElementById('eval-attitude').value = e.rating_attitude || '';
+  document.getElementById('eval-discipline').value = e.rating_discipline || '';
+
+  // Setup change event for department dropdown
+  selectDept.onchange = (ev) => {
+    filterEvaluatorDropdownByDepartment(ev.target.value);
+  };
+
+  document.getElementById('modal-add-evaluation').classList.add('active');
 }
 
 // Filter evaluators by department specialty
@@ -1902,15 +1998,31 @@ function filterEvaluatorDropdownByDepartment(selectedDeptName) {
   const selectEval = document.getElementById('eval-evaluator');
   selectEval.innerHTML = '';
   
-  const keyword = getSpecialtyKeywordFromRotationName(selectedDeptName);
-  const filteredSups = state.supervisors.filter(s => isSupervisorMatchingRotation(s, keyword));
-  
-  if (filteredSups.length === 0) {
-    selectEval.innerHTML = '<option value="">(Không có người hướng dẫn phù hợp chuyên khoa)</option>';
+  // If selectedDeptName is a rotation stage, we check if it has an assigned supervisor.
+  // "người hướng dẫn giai đoạn nào thì được đánh giá học viên giai đoạn đó"
+  const rot = state.activePractitionerDetail.rotations.find(r => r.name === selectedDeptName);
+  if (selectedDeptName !== 'Đánh giá chung' && rot) {
+    if (rot.supervisor_id) {
+      const isMatchingSup = state.supervisors.find(s => s.id === rot.supervisor_id);
+      if (isMatchingSup) {
+        selectEval.innerHTML = `<option value="${isMatchingSup.id}">${isMatchingSup.name} (${isMatchingSup.specialty} - ${isMatchingSup.department || 'Khoa tự do'})</option>`;
+        selectEval.value = isMatchingSup.id;
+      }
+    } else {
+      selectEval.innerHTML = '<option value="">(Chưa phân công người hướng dẫn giai đoạn)</option>';
+    }
   } else {
-    filteredSups.forEach(s => {
-      selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
-    });
+    // For "Đánh giá chung" or fallback, show all matching supervisors
+    const keyword = getSpecialtyKeywordFromRotationName(selectedDeptName);
+    const filteredSups = state.supervisors.filter(s => isSupervisorMatchingRotation(s, keyword));
+    
+    if (filteredSups.length === 0) {
+      selectEval.innerHTML = '<option value="">(Không có người hướng dẫn phù hợp chuyên khoa)</option>';
+    } else {
+      filteredSups.forEach(s => {
+        selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
+      });
+    }
   }
 
   // If supervisor is logged in, auto-select and lock the evaluator field
@@ -1919,22 +2031,28 @@ function filterEvaluatorDropdownByDepartment(selectedDeptName) {
     selectEval.disabled = true;
   } else {
     selectEval.disabled = false;
-    if (state.activePractitionerDetail.practitioner.supervisor_id && filteredSups.some(s => s.id === state.activePractitionerDetail.practitioner.supervisor_id)) {
-      selectEval.value = state.activePractitionerDetail.practitioner.supervisor_id;
-    }
   }
 }
 
 // Add Evaluation C.01
 document.getElementById('btn-add-evaluation').addEventListener('click', () => {
+  evaluationIdToEdit = null;
   document.getElementById('form-add-evaluation').reset();
   const selectDept = document.getElementById('eval-department');
+  document.getElementById('evaluation-modal-title').innerText = 'Lập Bảng Đánh giá thực hành chuyên môn';
   
   selectDept.innerHTML = '';
   // Dynamically populate actual rotation stages of practitioner if available
   if (state.activePractitionerDetail.rotations && state.activePractitionerDetail.rotations.length > 0) {
     state.activePractitionerDetail.rotations.forEach(r => {
-      selectDept.innerHTML += `<option value="${r.name}">${r.name}</option>`;
+      // If Supervisor is logged in, only show stages they are assigned to
+      if (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor) {
+        if (r.supervisor_id === state.currentSupervisor.id) {
+          selectDept.innerHTML += `<option value="${r.name}">${r.name}</option>`;
+        }
+      } else {
+        selectDept.innerHTML += `<option value="${r.name}">${r.name}</option>`;
+      }
     });
   } else {
     // Fallback default
@@ -1949,7 +2067,10 @@ document.getElementById('btn-add-evaluation').addEventListener('click', () => {
     }
   }
   // Always allow global/final evaluation option
-  selectDept.innerHTML += `<option value="Đánh giá chung">Đánh giá chung</option>`;
+  const isAssignedToAny = state.currentUser.role !== 'Người hướng dẫn' || (state.currentSupervisor && state.activePractitionerDetail.rotations.some(r => r.supervisor_id === state.currentSupervisor.id));
+  if (isAssignedToAny) {
+    selectDept.innerHTML += `<option value="Đánh giá chung">Đánh giá chung</option>`;
+  }
 
   // Filter initially
   filterEvaluatorDropdownByDepartment(selectDept.value);
@@ -1961,6 +2082,7 @@ document.getElementById('btn-add-evaluation').addEventListener('click', () => {
 
   document.getElementById('modal-add-evaluation').classList.add('active');
 });
+
 document.getElementById('form-add-evaluation').addEventListener('submit', async (e) => {
   e.preventDefault();
   const selectEval = document.getElementById('eval-evaluator');
@@ -1986,17 +2108,27 @@ document.getElementById('form-add-evaluation').addEventListener('submit', async 
   };
 
   try {
-    const res = await fetch('/api/evaluations', {
-      method: 'POST',
+    const isEdit = evaluationIdToEdit !== null;
+    const url = isEdit ? `/api/evaluations/${evaluationIdToEdit}` : '/api/evaluations';
+    const method = isEdit ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     });
     if (res.ok) {
       document.getElementById('modal-add-evaluation').classList.remove('active');
-      await viewPractitionerDetail(state.activePractitionerDetail.practitioner.id);
+      evaluationIdToEdit = null;
+      await refreshActivePractitionerDetail();
+      renderEvaluationsTabContent();
+    } else {
+      const err = await res.json();
+      alert('Lỗi lập đánh giá: ' + err.error);
     }
   } catch (err) {
     console.error(err);
+    alert('Lỗi kết nối: ' + err.message);
   }
 });
 
