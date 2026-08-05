@@ -1428,16 +1428,34 @@ function renderTimelineTabContent() {
     const sDate = rot.start_date ? new Date(rot.start_date).toLocaleDateString('vi-VN') : 'Chưa định ngày';
     const eDate = rot.end_date ? new Date(rot.end_date).toLocaleDateString('vi-VN') : 'Chưa định ngày';
 
+    // Check if the current user can mark this rotation as completed
+    const canComplete = rot.status === 'Đang thực hành' && (
+      isManager || 
+      (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor && rot.supervisor_id === state.currentSupervisor.id)
+    );
+
+    let completeBtn = '';
+    if (canComplete) {
+      completeBtn = `<button class="btn btn-success btn-complete-rot" style="padding: 2px 6px; font-size: 11px; background-color: var(--success); border-color: var(--success); color: white;"><i class="fas fa-check-circle"></i> Xác nhận hoàn thành</button>`;
+    }
+
     let editButtons = '';
     if (isManager) {
       const isFirst = index === 0;
       const isLast = index === rotations.length - 1;
       editButtons = `
-        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+          ${completeBtn}
           ${!isFirst ? `<button class="btn btn-secondary btn-move-up" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-up"></i> Lên</button>` : ''}
           ${!isLast ? `<button class="btn btn-secondary btn-move-down" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-down"></i> Xuống</button>` : ''}
           <button class="btn btn-secondary btn-edit-rot" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-pen"></i> Sửa</button>
           <button class="btn btn-secondary btn-del-rot" style="padding: 2px 6px; font-size: 11px; color: var(--danger);"><i class="fas fa-trash"></i> Xóa</button>
+        </div>
+      `;
+    } else if (completeBtn) {
+      editButtons = `
+        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+          ${completeBtn}
         </div>
       `;
     }
@@ -1459,6 +1477,30 @@ function renderTimelineTabContent() {
         ${editButtons}
       </div>
     `;
+
+    // Bind event handlers
+    if (canComplete) {
+      div.querySelector('.btn-complete-rot')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const confirmComplete = confirm(`Xác nhận hoàn thành thực hành giai đoạn "${rot.name}" cho học viên?`);
+        if (!confirmComplete) return;
+        
+        try {
+          const res = await fetch(`/api/rotations/${rot.id}/complete`, {
+            method: 'POST'
+          });
+          if (res.ok) {
+            await refreshActivePractitionerDetail();
+            renderTimelineTabContent();
+          } else {
+            const err = await res.json();
+            alert('Lỗi xác nhận hoàn thành: ' + err.error);
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+        }
+      });
+    }
 
     if (isManager) {
       div.querySelector('.btn-edit-rot')?.addEventListener('click', () => {

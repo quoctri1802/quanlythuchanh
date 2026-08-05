@@ -1932,6 +1932,60 @@ app.post('/api/system/reset-practitioners', async (req, res) => {
   }
 });
 
+// A.06: Confirm completion of a rotation stage
+app.post('/api/rotations/:id/complete', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Get current rotation details
+    const rRes = await client.query('SELECT * FROM practitioner_rotations WHERE id = $1', [req.params.id]);
+    if (rRes.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ error: 'Rotation stage not found' });
+    }
+    const currentRot = rRes.rows[0];
+    
+    // Update current rotation status to completed
+    await client.query(
+      "UPDATE practitioner_rotations SET status = 'Đã hoàn thành' WHERE id = $1",
+      [req.params.id]
+    );
+
+    // Find the next rotation stage (next order_index)
+    const nextRotRes = await client.query(
+      `SELECT * FROM practitioner_rotations 
+       WHERE practitioner_id = $1 AND order_index > $2 
+       ORDER BY order_index ASC LIMIT 1`,
+      [currentRot.practitioner_id, currentRot.order_index]
+    );
+
+    if (nextRotRes.rows.length > 0) {
+      const nextRot = nextRotRes.rows[0];
+      // Update next rotation status to 'Đang thực hành'
+      await client.query(
+        "UPDATE practitioner_rotations SET status = 'Đang thực hành' WHERE id = $1",
+        [nextRot.id]
+      );
+    } else {
+      // If final stage, mark practitioner overall status as completed
+      await client.query(
+        "UPDATE practitioners SET status = 'Hoàn thành' WHERE id = $1",
+        [currentRot.practitioner_id]
+      );
+    }
+
+    await recalculateRotationDates(client, currentRot.practitioner_id);
+    await client.query('COMMIT');
+    res.json({ message: 'Rotation stage completed successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // A.05: Download Excel Template with Data Validations (dropdowns)
 app.get('/api/templates/excel', async (req, res) => {
   try {
