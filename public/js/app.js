@@ -305,6 +305,22 @@ function setupGlobalEvents() {
     e.preventDefault();
     const id = state.activePractitionerDetail.practitioner.id;
     const supervisorVal = document.getElementById('stage-supervisor').value;
+
+    if (supervisorVal) {
+      const selectedSupId = parseInt(supervisorVal);
+      const selectedSup = state.supervisors.find(s => s.id === selectedSupId);
+      if (selectedSup && (selectedSup.active_trainees || 0) >= 5) {
+        const currentRot = state.activePractitionerDetail.rotations.find(r => r.id === rotationIdToEdit);
+        const isAlreadyAssigned = currentRot && currentRot.supervisor_id === selectedSupId;
+        if (!isAlreadyAssigned) {
+          const confirmAssign = confirm(`Cảnh báo: Bác sĩ ${selectedSup.name} hiện đang hướng dẫn đủ ${selectedSup.active_trainees} học viên (tối đa theo quy định là 5 học viên). Bạn có chắc chắn muốn tiếp tục phân công bác sĩ này không?`);
+          if (!confirmAssign) {
+            return; // cancel submit
+          }
+        }
+      }
+    }
+
     const formData = {
       name: document.getElementById('stage-name').value,
       duration: document.getElementById('stage-duration').value,
@@ -920,7 +936,7 @@ document.getElementById('btn-register-practitioner').addEventListener('click', (
     const option = document.createElement('option');
     option.value = s.id;
     option.innerText = `${s.name} - ${s.specialty} (${s.department || 'Khoa tự do'})${expText}`;
-    if (!eligible || isFull) {
+    if (!eligible) {
       option.disabled = true;
       option.style.color = 'var(--text-light)';
     }
@@ -966,7 +982,7 @@ function openEditPractitionerModal(p) {
     const option = document.createElement('option');
     option.value = s.id;
     option.innerText = `${s.name} - ${s.specialty} (${s.department || 'Khoa tự do'})${expText}`;
-    if (!eligible || isFull) {
+    if (!eligible) {
       option.disabled = true;
       option.style.color = 'var(--text-light)';
     }
@@ -1070,10 +1086,28 @@ function openAssignSupervisorModal(id) {
   
   modal.querySelector('h3').innerText = 'Chỉ định Người Hướng Dẫn';
   
+  const currentSupId = state.activePractitionerDetail && state.activePractitionerDetail.practitioner
+    ? state.activePractitionerDetail.practitioner.supervisor_id
+    : null;
+
   // Override registration form submit for assignment
   modal.querySelector('form').onsubmit = async (e) => {
     e.preventDefault();
     const supervisorId = select.value ? parseInt(select.value) : null;
+    
+    if (supervisorId) {
+      const selectedSup = state.supervisors.find(s => s.id === supervisorId);
+      if (selectedSup && (selectedSup.active_trainees || 0) >= 5) {
+        const isAlreadyAssigned = currentSupId === supervisorId;
+        if (!isAlreadyAssigned) {
+          const confirmAssign = confirm(`Cảnh báo: Bác sĩ ${selectedSup.name} hiện đang hướng dẫn đủ ${selectedSup.active_trainees} học viên (tối đa theo quy định là 5 học viên). Bạn có chắc chắn muốn tiếp tục phân công bác sĩ này không?`);
+          if (!confirmAssign) {
+            return;
+          }
+        }
+      }
+    }
+
     await fetch(`/api/practitioners/${practitionerIdToAssign}/assign-supervisor`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1087,9 +1121,6 @@ function openAssignSupervisorModal(id) {
   };
   
   select.innerHTML = '<option value="">-- Chọn người hướng dẫn --</option>';
-  const currentSupId = state.activePractitionerDetail && state.activePractitionerDetail.practitioner
-    ? state.activePractitionerDetail.practitioner.supervisor_id
-    : null;
     
   state.supervisors.forEach(s => {
     const eligible = isSupervisorEligible(s.license_date);
@@ -1106,7 +1137,7 @@ function openAssignSupervisorModal(id) {
     const option = document.createElement('option');
     option.value = s.id;
     option.innerText = `${s.name} - ${s.specialty} (${s.department || 'Khoa tự do'})${expText}`;
-    if (!eligible || isFull) {
+    if (!eligible) {
       option.disabled = true;
       option.style.color = 'var(--text-light)';
     }
@@ -1414,6 +1445,24 @@ function renderTimelineTabContent() {
   const container = document.getElementById('timeline-container');
   container.innerHTML = '';
 
+  // Check if any stage is missing supervisor assignment
+  const missingSupervisor = rotations && rotations.some(rot => !rot.supervisor_id);
+  const warningContainer = document.getElementById('timeline-warning');
+  if (warningContainer) {
+    if (missingSupervisor && rotations.length > 0) {
+      warningContainer.style.display = 'block';
+      warningContainer.innerHTML = `
+        <div style="background-color: #fef3c7; border-left: 4px solid #d97706; color: #92400e; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px;"></i>
+          <span><strong>Cảnh báo:</strong> Học viên này chưa được phân công người hướng dẫn đầy đủ cho tất cả các giai đoạn luân khoa.</span>
+        </div>
+      `;
+    } else {
+      warningContainer.style.display = 'none';
+      warningContainer.innerHTML = '';
+    }
+  }
+
   const managerActions = document.getElementById('timeline-actions-manager');
   const isManager = state.currentUser.role === 'Cán bộ quản lý';
   if (managerActions) {
@@ -1679,7 +1728,7 @@ function populateSupervisorSelect(selectedId, rotationName) {
         const option = document.createElement('option');
         option.value = s.id;
         option.innerText = `${s.name} - ${s.specialty}${expText}`;
-        if (!eligible || isFull) {
+        if (!eligible) {
           option.disabled = true;
           option.style.color = 'var(--text-light)';
         }
