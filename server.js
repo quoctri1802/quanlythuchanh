@@ -995,7 +995,17 @@ app.get('/api/practitioners', async (req, res) => {
                SELECT COALESCE(ARRAY_AGG(r.supervisor_id), '{}')
                FROM practitioner_rotations r
                WHERE r.practitioner_id = p.id AND r.supervisor_id IS NOT NULL
-             ) as rotation_supervisor_ids
+             ) as rotation_supervisor_ids,
+             (
+               SELECT COUNT(*)::INTEGER
+               FROM practitioner_rotations r
+               WHERE r.practitioner_id = p.id AND r.supervisor_id IS NULL
+             ) as missing_supervisor_count,
+             (
+               SELECT COUNT(*)::INTEGER
+               FROM practitioner_rotations r
+               WHERE r.practitioner_id = p.id
+             ) as total_rotations_count
       FROM practitioners p
       ORDER BY p.name ASC
     `);

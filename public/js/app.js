@@ -776,13 +776,25 @@ function renderPractitionersList() {
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = `<tr><td colspan="7" style="text-align: center; color:var(--text-secondary); padding:24px;">Không tìm thấy học viên nào</td></tr>`;
+    container.innerHTML = `<tr><td colspan="9" style="text-align: center; color:var(--text-secondary); padding:24px;">Không tìm thấy học viên nào</td></tr>`;
     return;
   }
 
   filtered.forEach(p => {
     const tr = document.createElement('tr');
-    const startStr = new Date(p.start_date).toLocaleDateString('vi-VN');
+    
+    // Calculate practice period
+    const startDateObj = new Date(p.start_date);
+    let durationMonths = 6;
+    if (p.program === 'TT21') {
+      durationMonths = 18;
+    } else {
+      if (p.specialty === 'Bác sĩ') durationMonths = 12;
+      else if (p.specialty === 'Y sĩ' || p.specialty === 'Tâm lý lâm sàng') durationMonths = 9;
+    }
+    const endDateObj = new Date(p.start_date);
+    endDateObj.setMonth(endDateObj.getMonth() + durationMonths);
+    const periodStr = `${startDateObj.toLocaleDateString('vi-VN')} - ${endDateObj.toLocaleDateString('vi-VN')}`;
 
     let profileBadge = '';
     if (p.profile_status === 'Chờ duyệt') {
@@ -801,6 +813,12 @@ function renderPractitionersList() {
     }
 
     const supervisorCell = `<span>${p.supervisor_name || 'Chưa phân công'}</span>`;
+
+    // Warning status for missing supervisor assignment
+    const hasWarning = (p.total_rotations_count === 0) || (p.missing_supervisor_count > 0);
+    const warningCell = hasWarning
+      ? `<span class="badge badge-danger" style="background-color: #fef3c7; color: #b45309; border: 1px solid #f59e0b; font-size: 11px;" title="Chưa phân công đủ người hướng dẫn"><i class="fa-solid fa-triangle-exclamation"></i> Thiếu HD</span>`
+      : `<span class="badge badge-success" style="background-color: #ecfdf5; color: #047857; border: 1px solid #10b981; font-size: 11px;" title="Đã phân công đầy đủ người hướng dẫn"><i class="fa-solid fa-circle-check"></i> Đầy đủ</span>`;
 
     let actionButtons = `<button class="btn-icon btn-view-det" title="Xem chi tiết lộ trình thực hành"><i class="fas fa-eye"></i></button>`;
     if (state.currentUser.role === 'Cán bộ quản lý') {
@@ -832,7 +850,9 @@ function renderPractitionersList() {
       </td>
       <td>${p.specialty}</td>
       <td>${p.program === 'ND96' ? 'NĐ 96/2023' : 'TT 21/2020'}</td>
+      <td style="font-size:12px; font-weight:500;">${periodStr}</td>
       <td>${supervisorCell}</td>
+      <td>${warningCell}</td>
       <td>${approvalActionCell}</td>
       <td>${examBadge}</td>
       <td class="actions-cell">${actionButtons}</td>
