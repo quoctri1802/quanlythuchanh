@@ -1558,6 +1558,44 @@ function renderTimelineTabContent() {
     if (canComplete) {
       div.querySelector('.btn-complete-rot')?.addEventListener('click', async (e) => {
         e.preventDefault();
+        
+        // Check if there is a matching evaluation for this stage
+        const evaluations = state.activePractitionerDetail.evaluations;
+        const rotNameLower = (rot.name || '').toLowerCase();
+        
+        function getKeyword(name) {
+          const nameLower = (name || '').toLowerCase();
+          if (nameLower.includes('nội')) return 'nội';
+          if (nameLower.includes('ngoại')) return 'ngoại';
+          if (nameLower.includes('nhi')) return 'nhi';
+          if (nameLower.includes('sản')) return 'sản';
+          if (nameLower.includes('tai mũi họng')) return 'tai mũi họng';
+          if (nameLower.includes('răng hàm mặt')) return 'răng hàm mặt';
+          if (nameLower.includes('mắt')) return 'mắt';
+          if (nameLower.includes('y học cổ truyền')) return 'y học cổ truyền';
+          if (nameLower.includes('da liễu')) return 'da liễu';
+          if (nameLower.includes('hồi sức') || nameLower.includes('cấp cứu')) return 'hồi sức';
+          if (nameLower.includes('xét nghiệm')) return 'xét nghiệm';
+          if (nameLower.includes('hình ảnh')) return 'hình ảnh';
+          if (nameLower.includes('vật lý trị liệu') || nameLower.includes('phục hồi chức năng') || nameLower.includes('phcn')) return 'phục hồi';
+          return nameLower;
+        }
+
+        const rotKeyword = getKeyword(rotNameLower);
+        const hasMatchingEval = evaluations.some(e => {
+          if (e.department === 'Đánh giá chung' || e.evaluation_type === 'Cuối khóa') return false;
+          const evalDeptLower = (e.department || '').toLowerCase();
+          const evalKeyword = getKeyword(evalDeptLower);
+          return evalKeyword === rotKeyword || 
+                 evalDeptLower.includes(rotKeyword) || 
+                 rotNameLower.includes(evalKeyword);
+        });
+
+        if (!hasMatchingEval) {
+          alert(`Không thể hoàn thành: Chưa có phiếu đánh giá chuyên môn thực hành cho giai đoạn "${rot.name}". Vui lòng tạo phiếu đánh giá cho khoa này trước.`);
+          return;
+        }
+
         const confirmComplete = confirm(`Xác nhận hoàn thành thực hành giai đoạn "${rot.name}" cho học viên?`);
         if (!confirmComplete) return;
         

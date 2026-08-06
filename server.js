@@ -2362,6 +2362,50 @@ app.post('/api/rotations/:id/complete', async (req, res) => {
     }
     const currentRot = rRes.rows[0];
     
+    // Check if there is a matching practice evaluation for this rotation stage
+    const evalRes = await client.query(
+      'SELECT * FROM evaluations WHERE practitioner_id = $1',
+      [currentRot.practitioner_id]
+    );
+    const evaluations = evalRes.rows;
+
+    const rotNameLower = (currentRot.name || '').toLowerCase();
+    
+    function getKeyword(name) {
+      const nameLower = (name || '').toLowerCase();
+      if (nameLower.includes('nội')) return 'nội';
+      if (nameLower.includes('ngoại')) return 'ngoại';
+      if (nameLower.includes('nhi')) return 'nhi';
+      if (nameLower.includes('sản')) return 'sản';
+      if (nameLower.includes('tai mũi họng')) return 'tai mũi họng';
+      if (nameLower.includes('răng hàm mặt')) return 'răng hàm mặt';
+      if (nameLower.includes('mắt')) return 'mắt';
+      if (nameLower.includes('y học cổ truyền')) return 'y học cổ truyền';
+      if (nameLower.includes('da liễu')) return 'da liễu';
+      if (nameLower.includes('hồi sức') || nameLower.includes('cấp cứu')) return 'hồi sức';
+      if (nameLower.includes('xét nghiệm')) return 'xét nghiệm';
+      if (nameLower.includes('hình ảnh')) return 'hình ảnh';
+      if (nameLower.includes('vật lý trị liệu') || nameLower.includes('phục hồi chức năng') || nameLower.includes('phcn')) return 'phục hồi';
+      return nameLower;
+    }
+
+    const rotKeyword = getKeyword(rotNameLower);
+    const hasMatchingEval = evaluations.some(e => {
+      if (e.department === 'Đánh giá chung' || e.evaluation_type === 'Cuối khóa') return false;
+      const evalDeptLower = (e.department || '').toLowerCase();
+      const evalKeyword = getKeyword(evalDeptLower);
+      return evalKeyword === rotKeyword || 
+             evalDeptLower.includes(rotKeyword) || 
+             rotNameLower.includes(evalKeyword);
+    });
+
+    if (!hasMatchingEval) {
+      client.release();
+      return res.status(400).json({ 
+        error: `Chưa có phiếu đánh giá chuyên môn thực hành cho giai đoạn "${currentRot.name}". Vui lòng tạo phiếu đánh giá cho khoa này trước khi xác nhận hoàn thành.` 
+      });
+    }
+
     // Update current rotation status to completed
     await client.query(
       "UPDATE practitioner_rotations SET status = 'Đã hoàn thành' WHERE id = $1",
