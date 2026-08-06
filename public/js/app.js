@@ -533,7 +533,9 @@ async function loadNotifications() {
   if (!state.currentUser) return;
   try {
     const res = await fetch(`/api/notifications?userId=${state.currentUser.id}`);
-    state.notifications = await res.json();
+    const allNotifications = await res.json();
+    // Keep only unread notifications so they disappear once read
+    state.notifications = allNotifications.filter(n => !n.is_read);
 
     // Check for late logs alerts for active trainees
     if (state.currentUser.role === 'Học viên' && state.currentPractitioner) {
@@ -548,7 +550,10 @@ async function loadNotifications() {
       const diffTime = Math.abs(new Date() - lastLogDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
-      if (diffDays > state.config.lateAlertDays && state.currentPractitioner.status === 'Đang thực hành') {
+      const dismissedDate = localStorage.getItem('dismissed_late_alert_date');
+      const todayDate = new Date().toDateString();
+
+      if (diffDays > state.config.lateAlertDays && state.currentPractitioner.status === 'Đang thực hành' && dismissedDate !== todayDate) {
         const lateAlertExists = state.notifications.some(n => n.title.includes('CẢNH BÁO'));
         if (!lateAlertExists) {
           const alertItem = {
@@ -572,15 +577,41 @@ async function loadNotifications() {
       state.notifications.slice(0, 3).forEach(n => {
         const div = document.createElement('div');
         div.className = `notification-item ${n.is_read ? '' : 'unread'} ${n.is_alert ? 'alert-late' : ''}`;
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'flex-start';
+        div.style.gap = '8px';
+
         div.innerHTML = `
-          <div>
+          <div style="flex: 1;">
             <strong style="display:block; margin-bottom:2px;">${n.title}</strong>
             <span>${n.message}</span>
             <small style="display:block; margin-top:4px; color:var(--text-light); font-size:11px;">
               ${n.created_at ? new Date(n.created_at).toLocaleString('vi-VN') : 'Hiện tại'}
             </small>
           </div>
+          <button class="btn-read-single" style="background:none; border:none; color:var(--text-light); cursor:pointer; padding:4px 8px; font-size:14px; transition:color 0.2s;" title="Đánh dấu đã đọc">
+            <i class="fa-solid fa-check"></i>
+          </button>
         `;
+
+        div.querySelector('.btn-read-single').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (n.id === 'temp-alert') {
+            localStorage.setItem('dismissed_late_alert_date', new Date().toDateString());
+            await loadNotifications();
+          } else {
+            try {
+              const readRes = await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
+              if (readRes.ok) {
+                await loadNotifications();
+              }
+            } catch (err) {
+              console.error('Lỗi khi đánh dấu đã đọc:', err);
+            }
+          }
+        });
+
         notificationsFeedList.appendChild(div);
       });
     }

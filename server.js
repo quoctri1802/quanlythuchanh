@@ -2028,6 +2028,15 @@ app.post('/api/notifications/read-all', async (req, res) => {
   }
 });
 
+app.post('/api/notifications/:id/read', async (req, res) => {
+  try {
+    await pool.query('UPDATE notifications SET is_read = TRUE WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Notification marked as read' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // API: SYSTEM BACKUP & RESTORE (Neon DB, File, & JSON Import/Export)
 // ==========================================
