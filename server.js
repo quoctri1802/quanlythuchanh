@@ -14,7 +14,10 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  max: 4, // limit max connections per serverless instance to prevent Neon DB connection exhaustion
+  idleTimeoutMillis: 15000, // close idle connections quickly (15s) to free up DB pool
+  connectionTimeoutMillis: 5000 // fail fast (5s) if database connection is stuck to prevent requests hanging
 });
 
 // Configure SMTP mail transporter for sending credentials to trainees
