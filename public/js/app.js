@@ -420,14 +420,21 @@ function renderHeaderProfile() {
 // Fetch all database records
 async function refreshData() {
   try {
-    const supervisorsRes = await fetch('/api/supervisors');
-    state.supervisors = await supervisorsRes.json();
+    const [supervisorsRes, practitionersRes, departmentsRes] = await Promise.all([
+      fetch('/api/supervisors'),
+      fetch('/api/practitioners'),
+      fetch('/api/departments')
+    ]);
 
-    const practitionersRes = await fetch('/api/practitioners');
-    state.practitioners = await practitionersRes.json();
+    const [supervisors, practitioners, departments] = await Promise.all([
+      supervisorsRes.json(),
+      practitionersRes.json(),
+      departmentsRes.json()
+    ]);
 
-    const departmentsRes = await fetch('/api/departments');
-    state.departments = await departmentsRes.json();
+    state.supervisors = supervisors;
+    state.practitioners = practitioners;
+    state.departments = departments;
 
     updateDepartmentsDatalist();
   } catch (err) {

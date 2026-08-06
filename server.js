@@ -439,6 +439,20 @@ async function initializeDatabase() {
       );
     `);
 
+    // 11. Create Indexes for performance optimization (foreign keys & search columns)
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_practitioner_rotations_practitioner ON practitioner_rotations(practitioner_id);
+      CREATE INDEX IF NOT EXISTS idx_practitioner_rotations_supervisor ON practitioner_rotations(supervisor_id);
+      CREATE INDEX IF NOT EXISTS idx_practice_logs_practitioner ON practice_logs(practitioner_id);
+      CREATE INDEX IF NOT EXISTS idx_practice_logs_rotation ON practice_logs(rotation_id);
+      CREATE INDEX IF NOT EXISTS idx_evaluations_practitioner ON evaluations(practitioner_id);
+      CREATE INDEX IF NOT EXISTS idx_evaluations_evaluator ON evaluations(evaluator_id);
+      CREATE INDEX IF NOT EXISTS idx_supplemental_training_practitioner ON supplemental_training(practitioner_id);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+      CREATE INDEX IF NOT EXISTS idx_supervisors_username ON supervisors(username);
+      CREATE INDEX IF NOT EXISTS idx_practitioners_username ON practitioners(username);
+    `);
+
     console.log('Seeding administrative accounts...');
 
     // Seed Admin (SysAdmin) Account
