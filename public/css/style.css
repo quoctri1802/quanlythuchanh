@@ -1122,7 +1122,7 @@ body {
   }
 
   .cert-info-table td {
-    padding: 6px 0;
+    padding: 6px 10px 6px 0;
     vertical-align: top;
     border: none !important;
     color: black !important;

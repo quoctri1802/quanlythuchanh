@@ -739,7 +739,9 @@ function renderPractitionersList() {
   let list = state.practitioners;
   
   if (state.currentUser.role === 'Người hướng dẫn' && state.currentSupervisor) {
-    list = state.practitioners.filter(p => p.supervisor_id === state.currentSupervisor.id);
+    list = state.practitioners.filter(p => 
+      p.rotation_supervisor_ids && p.rotation_supervisor_ids.includes(state.currentSupervisor.id)
+    );
   }
 
   const filtered = list.filter(p => {
@@ -775,14 +777,7 @@ function renderPractitionersList() {
       examBadge = `<span class="badge badge-danger">Hỏng thi (${p.national_test_score})</span>`;
     }
 
-    let supervisorCell = '';
-    if (p.supervisor_id) {
-      supervisorCell = `<span>${p.supervisor_name}</span>`;
-    } else if (state.currentUser.role === 'Cán bộ quản lý') {
-      supervisorCell = `<button class="btn btn-secondary btn-assign-sup" style="padding:4px 8px; font-size:11px;"><i class="fa-solid fa-user-pen"></i> Phân công</button>`;
-    } else {
-      supervisorCell = `<span style="color:var(--danger)">Chưa phân công</span>`;
-    }
+    const supervisorCell = `<span>${p.supervisor_name || 'Chưa phân công'}</span>`;
 
     let actionButtons = `<button class="btn-icon btn-view-det" title="Xem chi tiết lộ trình thực hành"><i class="fas fa-eye"></i></button>`;
     if (state.currentUser.role === 'Cán bộ quản lý') {
@@ -1180,7 +1175,11 @@ function renderSupervisorsList() {
       const listContainer = document.getElementById('sup-trainees-list-container');
       listContainer.innerHTML = '';
 
-      const assignedTrainees = state.practitioners.filter(p => p.supervisor_id === s.id);
+      const assignedTrainees = state.practitioners.filter(p => 
+        p.status === 'Đang thực hành' && 
+        p.rotation_supervisor_ids && 
+        p.rotation_supervisor_ids.includes(s.id)
+      );
 
       if (assignedTrainees.length === 0) {
         listContainer.innerHTML = `
@@ -1375,7 +1374,7 @@ function renderPractitionerDetail() {
   }
 
   const addEvalBtn = document.getElementById('btn-add-evaluation');
-  if (role === 'Người hướng dẫn') {
+  if (role === 'Người hướng dẫn' || role === 'Cán bộ quản lý') {
     addEvalBtn.style.display = 'inline-flex';
   } else {
     addEvalBtn.style.display = 'none';
@@ -1866,7 +1865,7 @@ function renderEvaluationsTabContent() {
     }
 
     const isEvaluator = state.currentSupervisor && state.currentSupervisor.id === e.evaluator_id;
-    const canModify = isManager || isEvaluator;
+    const canModify = isManager || (isEvaluator && e.department !== 'Đánh giá chung');
 
     let modifyButtons = '';
     if (canModify) {
@@ -1959,8 +1958,7 @@ function openEditEvaluationModal(e) {
       }
     });
   }
-  const isAssignedToAny = state.activePractitionerDetail.rotations.some(r => r.supervisor_id === e.evaluator_id);
-  if (state.currentUser.role !== 'Người hướng dẫn' || isAssignedToAny) {
+  if (state.currentUser.role === 'Cán bộ quản lý') {
     selectDept.innerHTML += `<option value="Đánh giá chung">Đánh giá chung</option>`;
   }
   
@@ -1998,30 +1996,67 @@ function filterEvaluatorDropdownByDepartment(selectedDeptName) {
   const selectEval = document.getElementById('eval-evaluator');
   selectEval.innerHTML = '';
   
-  // If selectedDeptName is a rotation stage, we check if it has an assigned supervisor.
-  // "người hướng dẫn giai đoạn nào thì được đánh giá học viên giai đoạn đó"
-  const rot = state.activePractitionerDetail.rotations.find(r => r.name === selectedDeptName);
-  if (selectedDeptName !== 'Đánh giá chung' && rot) {
-    if (rot.supervisor_id) {
-      const isMatchingSup = state.supervisors.find(s => s.id === rot.supervisor_id);
-      if (isMatchingSup) {
-        selectEval.innerHTML = `<option value="${isMatchingSup.id}">${isMatchingSup.name} (${isMatchingSup.specialty} - ${isMatchingSup.department || 'Khoa tự do'})</option>`;
-        selectEval.value = isMatchingSup.id;
+  if (selectedDeptName === 'Đánh giá chung') {
+    const assignedSups = [];
+    state.activePractitionerDetail.rotations.forEach(r => {
+      if (r.supervisor_id && !assignedSups.some(s => s.id === r.supervisor_id)) {
+        assignedSups.push({ id: r.supervisor_id, name: r.supervisor_name });
       }
+    });
+
+    if (state.currentUser.role === 'Cán bộ quản lý') {
+      selectEval.innerHTML = '';
+      if (assignedSups.length > 0) {
+        selectEval.innerHTML += '<optgroup label="Người hướng dẫn của học viên">';
+        assignedSups.forEach(s => {
+          const fullSup = state.supervisors.find(fs => fs.id === s.id);
+          const specialtyText = fullSup ? ` (${fullSup.specialty} - ${fullSup.department || 'Khoa tự do'})` : '';
+          selectEval.innerHTML += `<option value="${s.id}">${s.name}${specialtyText}</option>`;
+        });
+        selectEval.innerHTML += '</optgroup>';
+      }
+      
+      selectEval.innerHTML += '<optgroup label="Tất cả người hướng dẫn">';
+      state.supervisors.forEach(s => {
+        if (!assignedSups.some(as => as.id === s.id)) {
+          selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
+        }
+      });
+      selectEval.innerHTML += '</optgroup>';
     } else {
-      selectEval.innerHTML = '<option value="">(Chưa phân công người hướng dẫn giai đoạn)</option>';
+      if (assignedSups.length === 0) {
+        selectEval.innerHTML = '<option value="">(Chưa phân công người hướng dẫn nào ở các giai đoạn)</option>';
+      } else {
+        assignedSups.forEach(s => {
+          const fullSup = state.supervisors.find(fs => fs.id === s.id);
+          const specialtyText = fullSup ? ` (${fullSup.specialty} - ${fullSup.department || 'Khoa tự do'})` : '';
+          selectEval.innerHTML += `<option value="${s.id}">${s.name}${specialtyText}</option>`;
+        });
+      }
     }
   } else {
-    // For "Đánh giá chung" or fallback, show all matching supervisors
-    const keyword = getSpecialtyKeywordFromRotationName(selectedDeptName);
-    const filteredSups = state.supervisors.filter(s => isSupervisorMatchingRotation(s, keyword));
-    
-    if (filteredSups.length === 0) {
-      selectEval.innerHTML = '<option value="">(Không có người hướng dẫn phù hợp chuyên khoa)</option>';
+    const rot = state.activePractitionerDetail.rotations.find(r => r.name === selectedDeptName);
+    if (rot) {
+      if (rot.supervisor_id) {
+        const isMatchingSup = state.supervisors.find(s => s.id === rot.supervisor_id);
+        if (isMatchingSup) {
+          selectEval.innerHTML = `<option value="${isMatchingSup.id}">${isMatchingSup.name} (${isMatchingSup.specialty} - ${isMatchingSup.department || 'Khoa tự do'})</option>`;
+          selectEval.value = isMatchingSup.id;
+        }
+      } else {
+        selectEval.innerHTML = '<option value="">(Chưa phân công người hướng dẫn giai đoạn)</option>';
+      }
     } else {
-      filteredSups.forEach(s => {
-        selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
-      });
+      const keyword = getSpecialtyKeywordFromRotationName(selectedDeptName);
+      const filteredSups = state.supervisors.filter(s => isSupervisorMatchingRotation(s, keyword));
+      
+      if (filteredSups.length === 0) {
+        selectEval.innerHTML = '<option value="">(Không có người hướng dẫn phù hợp chuyên khoa)</option>';
+      } else {
+        filteredSups.forEach(s => {
+          selectEval.innerHTML += `<option value="${s.id}">${s.name} (${s.specialty} - ${s.department || 'Khoa tự do'})</option>`;
+        });
+      }
     }
   }
 
@@ -2067,8 +2102,7 @@ document.getElementById('btn-add-evaluation').addEventListener('click', () => {
     }
   }
   // Always allow global/final evaluation option
-  const isAssignedToAny = state.currentUser.role !== 'Người hướng dẫn' || (state.currentSupervisor && state.activePractitionerDetail.rotations.some(r => r.supervisor_id === state.currentSupervisor.id));
-  if (isAssignedToAny) {
+  if (state.currentUser.role === 'Cán bộ quản lý') {
     selectDept.innerHTML += `<option value="Đánh giá chung">Đánh giá chung</option>`;
   }
 
@@ -2104,7 +2138,8 @@ document.getElementById('form-add-evaluation').addEventListener('submit', async 
     rating_experience: document.getElementById('eval-experience').value,
     rating_growth: document.getElementById('eval-growth').value,
     rating_attitude: document.getElementById('eval-attitude').value,
-    rating_discipline: document.getElementById('eval-discipline').value
+    rating_discipline: document.getElementById('eval-discipline').value,
+    by_manager: state.currentUser.role === 'Cán bộ quản lý'
   };
 
   try {
@@ -2245,30 +2280,39 @@ function renderCompletionCertificateTabContent() {
     met: evalMet
   });
 
-  // 4. Theory classes hours check
+  // 4. Theory classes hours check (Optional / Non-mandatory)
   const totalHours = training.reduce((sum, item) => sum + item.hours, 0);
   const theoryMet = training.length >= 20 && totalHours >= state.config.minHours;
   checklist.push({
-    text: `Hoàn thành 20 buổi học lý thuyết bổ trợ bắt buộc (${training.length}/20 buổi, tổng số ${totalHours}/${state.config.minHours} giờ).`,
-    met: theoryMet
+    text: `Đào tạo bổ trợ - Học lý thuyết (Không bắt buộc) (${training.length}/20 buổi, tổng số ${totalHours}/${state.config.minHours} giờ).`,
+    met: true,
+    isOptional: true,
+    actualMet: theoryMet
   });
 
   // Render check UI list
   let allConditionsMet = true;
   checklist.forEach(item => {
     if (!item.met) allConditionsMet = false;
+
+    const isCompleted = item.isOptional ? item.actualMet : item.met;
+    const iconClass = isCompleted ? 'fa-check-circle' : (item.isOptional ? 'fa-circle-info' : 'fa-times-circle');
+    const iconColor = isCompleted ? 'var(--success)' : (item.isOptional ? 'var(--text-light)' : 'var(--danger)');
+    const bgColor = isCompleted ? 'var(--success-light)' : 'var(--bg-primary)';
+    const borderColor = isCompleted ? 'var(--success)' : 'var(--border-color)';
+
     const div = document.createElement('div');
     div.style.display = 'flex';
     div.style.alignItems = 'center';
     div.style.gap = '12px';
     div.style.padding = '8px 12px';
-    div.style.backgroundColor = item.met ? 'var(--success-light)' : 'var(--bg-primary)';
-    div.style.border = `1px solid ${item.met ? 'var(--success)' : 'var(--border-color)'}`;
+    div.style.backgroundColor = bgColor;
+    div.style.border = `1px solid ${borderColor}`;
     div.style.borderRadius = 'var(--radius-md)';
     div.style.fontSize = '13px';
     div.innerHTML = `
-      <i class="fas ${item.met ? 'fa-check-circle' : 'fa-times-circle'}" style="color: ${item.met ? 'var(--success)' : 'var(--danger)'}; font-size:16px;"></i>
-      <span style="color: ${item.met ? 'var(--text-primary)' : 'var(--text-secondary)'};">${item.text}</span>
+      <i class="fas ${iconClass}" style="color: ${iconColor}; font-size:16px;"></i>
+      <span style="color: ${isCompleted ? 'var(--text-primary)' : 'var(--text-secondary)'};">${item.text}</span>
     `;
     container.appendChild(div);
   });
@@ -2320,10 +2364,34 @@ function renderCompletionCertificateTabContent() {
     printCertBtn.innerHTML = '<i class="fa-solid fa-print"></i> In Giấy xác nhận (Mẫu 07)';
     printCertBtn.onclick = () => {
       const pContainer = document.getElementById('print-container');
-      const sup = state.supervisors.find(s => s.id === practitioner.supervisor_id);
+      
+      const assignedSups = [];
+      if (state.activePractitionerDetail && state.activePractitionerDetail.rotations) {
+        state.activePractitionerDetail.rotations.forEach(rot => {
+          if (rot.supervisor_id && !assignedSups.some(s => s.id === rot.supervisor_id)) {
+            const fullSup = state.supervisors.find(s => s.id === rot.supervisor_id);
+            assignedSups.push({
+              name: rot.supervisor_name,
+              license_number: fullSup ? fullSup.license_number : 'Chưa cập nhật'
+            });
+          }
+        });
+      }
+      if (assignedSups.length === 0) {
+        const finalEval = evaluations.find(e => e.department === 'Đánh giá chung');
+        const finalSupId = finalEval ? finalEval.evaluator_id : practitioner.supervisor_id;
+        const sup = state.supervisors.find(s => s.id === finalSupId);
+        if (sup) {
+          assignedSups.push({
+            name: sup.name,
+            license_number: sup.license_number
+          });
+        }
+      }
+
       pContainer.innerHTML = practitioner.program === 'ND96' 
-        ? Templates.generateDecree96Certificate(practitioner, sup, evaluations, training)
-        : Templates.generateCircular21Certificate(practitioner, sup, evaluations);
+        ? Templates.generateDecree96Certificate(practitioner, assignedSups, evaluations, training)
+        : Templates.generateCircular21Certificate(practitioner, assignedSups, evaluations);
       window.print();
     };
   } else {
@@ -2400,9 +2468,31 @@ document.getElementById('form-national-test').addEventListener('submit', async (
 
 // D.04: ZIP package export generator
 async function exportZipArchive(practitioner, evaluations, training) {
-  const sup = state.supervisors.find(s => s.id === practitioner.supervisor_id);
+  const assignedSups = [];
+  if (state.activePractitionerDetail && state.activePractitionerDetail.rotations) {
+    state.activePractitionerDetail.rotations.forEach(rot => {
+      if (rot.supervisor_id && !assignedSups.some(s => s.id === rot.supervisor_id)) {
+        const fullSup = state.supervisors.find(s => s.id === rot.supervisor_id);
+        assignedSups.push({
+          name: rot.supervisor_name,
+          license_number: fullSup ? fullSup.license_number : 'Chưa cập nhật'
+        });
+      }
+    });
+  }
+  if (assignedSups.length === 0) {
+    const finalEval = evaluations.find(e => e.department === 'Đánh giá chung');
+    const finalSupId = finalEval ? finalEval.evaluator_id : practitioner.supervisor_id;
+    const sup = state.supervisors.find(s => s.id === finalSupId);
+    if (sup) {
+      assignedSups.push({
+        name: sup.name,
+        license_number: sup.license_number
+      });
+    }
+  }
   
-  const m07Html = Templates.generateDecree96Certificate(practitioner, sup, evaluations, training);
+  const m07Html = Templates.generateDecree96Certificate(practitioner, assignedSups, evaluations, training);
   const m08Html = Templates.generateDecree96ApplicationForm(practitioner);
 
   try {
@@ -2533,23 +2623,29 @@ document.getElementById('btn-save-sys-config').addEventListener('click', () => {
   alert('Đã cập nhật cấu hình hệ thống kiểm soát thực hành y khoa thành công!');
 });
 
-// Database Backup
+// Database Backup (Neon Cloud)
 document.getElementById('btn-sys-backup').addEventListener('click', async () => {
   try {
     const res = await fetch('/api/system/backup', { method: 'POST' });
     const data = await res.json();
-    document.getElementById('backup-status-text').innerHTML = `
-      ✓ Đã tạo bản sao lưu lúc ${new Date(data.timestamp).toLocaleString('vi-VN')}.<br>
-      Tóm tắt: ${data.summary.users} TK, ${data.summary.supervisors} NHD, ${data.summary.practitioners} HV, ${data.summary.logs} Nhật ký.
-    `;
-    alert(data.message);
+    if (res.ok) {
+      document.getElementById('backup-status-text').innerHTML = `
+        ✓ Đã tạo bản sao lưu lúc ${new Date(data.timestamp).toLocaleString('vi-VN')}.<br>
+        Tóm tắt: ${data.summary.users} TK, ${data.summary.supervisors} NHD, ${data.summary.practitioners} HV, ${data.summary.logs} Nhật ký, ${data.summary.notifications || 0} Thông báo.
+      `;
+      alert(data.message);
+    } else {
+      alert('Sao lưu thất bại: ' + (data.error || 'Lỗi không rõ'));
+    }
   } catch (err) {
     alert('Lỗi sao lưu: ' + err.message);
   }
 });
 
-// Database Restore
+// Database Restore (Neon Cloud)
 document.getElementById('btn-sys-restore').addEventListener('click', async () => {
+  const confirmRestore = confirm("CẢNH BÁO:\nHành động này sẽ XÓA TOÀN BỘ dữ liệu hiện tại và thay thế bằng dữ liệu từ bản sao lưu gần nhất trên Neon Cloud.\n\nBạn có muốn tiếp tục?");
+  if (!confirmRestore) return;
   try {
     const res = await fetch('/api/system/restore', { method: 'POST' });
     const data = await res.json();
@@ -2558,12 +2654,68 @@ document.getElementById('btn-sys-restore').addEventListener('click', async () =>
       await refreshData();
       switchView('dashboard');
     } else {
-      const err = await res.json();
-      alert('Phục hồi thất bại: ' + err.error);
+      alert('Phục hồi thất bại: ' + (data.error || 'Lỗi không rõ'));
     }
   } catch (err) {
     alert('Lỗi kết nối: ' + err.message);
   }
+});
+
+// Export Backup File (.json) to User PC
+document.getElementById('btn-sys-export').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = '/api/system/export';
+  a.download = `qlhn_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+});
+
+// Import Backup File (.json) from User PC
+const fileInput = document.getElementById('sys-restore-file-input');
+document.getElementById('btn-sys-import').addEventListener('click', () => {
+  fileInput.click();
+});
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      const backupData = JSON.parse(evt.target.result);
+      if (!backupData || !backupData.users || !backupData.supervisors || !backupData.practitioners) {
+        alert('Tệp JSON không hợp lệ hoặc thiếu dữ liệu cốt lõi (cần có danh sách users, supervisors, practitioners).');
+        return;
+      }
+
+      const confirmImport = confirm("CẢNH BÁO CỰC KỲ QUAN TRỌNG:\nBạn chuẩn bị nhập dữ liệu từ file sao lưu cục bộ.\n\nHành động này sẽ XÓA SẠCH toàn bộ dữ liệu hiện tại của hệ thống trên Neon Cloud để khôi phục theo dữ liệu trong file này.\n\nBạn chắc chắn muốn tiếp tục?");
+      if (!confirmImport) {
+        fileInput.value = '';
+        return;
+      }
+
+      const res = await fetch('/api/system/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(backupData)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        await refreshData();
+        switchView('dashboard');
+      } else {
+        alert('Khôi phục từ file thất bại: ' + (data.error || 'Lỗi không rõ'));
+      }
+    } catch (parseErr) {
+      alert('Không thể đọc tệp JSON: ' + parseErr.message);
+    }
+    fileInput.value = '';
+  };
+  reader.readAsText(file);
 });
 
 // Database Reset (Clear all practitioners & notifications)

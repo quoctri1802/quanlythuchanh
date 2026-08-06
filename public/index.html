@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css?v=2.0.3">
+  <!-- Favicon Logo -->
+  <link rel="shortcut icon" type="image/png" href="logo.png">
 </head>
 <body>
 
@@ -349,7 +351,7 @@
               <button class="tab-btn" data-tab="tab-logs">Nhật ký lâm sàng hằng ngày (B.01)</button>
               <button class="tab-btn" data-tab="tab-evaluations">Đánh giá chuyên môn (C.01)</button>
               <button class="tab-btn" data-tab="tab-training">Đào tạo bổ trợ (20 buổi)</button>
-              <button class="tab-btn" data-tab="tab-certificate">Cấp Giấy phép & Hồ sơ (Module D)</button>
+              <button class="tab-btn" data-tab="tab-certificate">Cấp Giấy xác nhận & Hồ sơ (Module D)</button>
             </div>
 
             <!-- Tab 1: Timeline -->
@@ -567,21 +569,28 @@
             <i class="fa-solid fa-database" style="color: var(--primary);"></i>
           </div>
           <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
-            Thực hiện sao lưu toàn bộ các bảng dữ liệu thực hành y khoa tại Neon Cloud PostgreSQL hoặc khôi phục dữ liệu về trạng thái sao lưu gần nhất.
+            Thực hiện sao lưu toàn bộ các bảng dữ liệu thực hành y khoa tại Neon Cloud PostgreSQL (cập nhật thời gian thực) hoặc khôi phục dữ liệu từ bản sao lưu gần nhất.
           </p>
-          <div style="display:flex; gap:12px;">
+          <div style="display:flex; gap:12px; flex-wrap: wrap;">
             <button class="btn btn-primary" id="btn-sys-backup">
-              <i class="fa-solid fa-download"></i> Tạo Bản Sao Lưu Mới
+              <i class="fa-solid fa-cloud-arrow-up"></i> Tạo Sao Lưu (Neon Cloud)
             </button>
             <button class="btn btn-secondary" id="btn-sys-restore">
-              <i class="fa-solid fa-upload"></i> Khôi Phục Dữ Liệu Gần Nhất
+              <i class="fa-solid fa-cloud-arrow-down"></i> Khôi Phục Gần Nhất (Neon Cloud)
+            </button>
+            <button class="btn btn-secondary" id="btn-sys-export" style="background-color: #0d9488; border-color: #0d9488; color: white;">
+              <i class="fa-solid fa-file-export"></i> Tải File Sao Lưu (.json)
+            </button>
+            <button class="btn btn-secondary" id="btn-sys-import" style="background-color: #4f46e5; border-color: #4f46e5; color: white;">
+              <i class="fa-solid fa-file-import"></i> Khôi Phục từ File (.json)
             </button>
             <button class="btn btn-primary" id="btn-sys-reset-practitioners" style="background-color: var(--danger);">
               <i class="fa-solid fa-trash-can"></i> Xóa sạch Học viên & Thông báo
             </button>
           </div>
+          <input type="file" id="sys-restore-file-input" accept=".json" style="display:none;">
           <div id="backup-status-text" style="margin-top: 12px; font-size:12px; font-weight:600; color:var(--text-secondary);">
-            Chưa tạo bản sao lưu nào trong phiên hoạt động hiện tại.
+            Hệ thống tự động đồng bộ thời gian thực trên Neon. Bạn có thể tải tệp JSON để dự phòng cục bộ.
           </div>
         </div>
       </section>

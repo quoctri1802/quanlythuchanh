@@ -1,7 +1,9 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
+const fs = require('fs');
 const ExcelJS = require('exceljs');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -14,6 +16,66 @@ const pool = new Pool({
     rejectUnauthorized: false
   }
 });
+
+// Configure SMTP mail transporter for sending credentials to trainees
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || ''
+  }
+});
+
+async function sendWelcomeEmail(email, name, username, password) {
+  if (!email) {
+    console.log(`[Email Mock] Skip sending welcome email for ${name}: No email address provided.`);
+    return;
+  }
+  
+  const mailOptions = {
+    from: `"Hệ thống QLHN" <${process.env.SMTP_FROM || 'no-reply@qlhn-bvlc.gov.vn'}>`,
+    to: email,
+    subject: 'Thông tin tài khoản đăng nhập Hệ thống Quản lý Thực hành Y khoa',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #007bff; text-align: center;">Thông Báo Cấp Tài Khoản Đăng Nhập</h2>
+        <p>Kính gửi Anh/Chị <strong>${name}</strong>,</p>
+        <p>Hồ sơ đăng ký thực hành y khoa của Anh/Chị đã được tiếp nhận thành công vào hệ thống quản lý thực hành của Bệnh viện. Dưới đây là thông tin tài khoản để truy cập hệ thống:</p>
+        <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0; border-radius: 4px;">
+          <p style="margin: 5px 0;"><strong>Đường dẫn truy cập:</strong> <a href="${process.env.SYSTEM_URL || 'http://localhost:3000'}" style="color: #007bff; text-decoration: none;">Đăng nhập hệ thống</a></p>
+          <p style="margin: 5px 0;"><strong>Tên đăng nhập:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 15px; color: #e83e8c;">${username}</code></p>
+          <p style="margin: 5px 0;"><strong>Mật khẩu mặc định:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 15px; color: #e83e8c;">${password}</code></p>
+        </div>
+        <p style="color: #dc3545;">* Lưu ý: Anh/Chị vui lòng đăng nhập hệ thống và thay đổi mật khẩu ngay trong lần đăng nhập đầu tiên để đảm bảo bảo mật thông tin.</p>
+        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #6c757d; text-align: center;">Đây là email tự động từ Hệ thống Quản lý Thực hành Y khoa. Vui lòng không trả lời email này.</p>
+      </div>
+    `
+  };
+
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log(`
+=========================================
+[SMTP NOT CONFIGURING - EMAIL MOCK LOGGER]
+To: ${email}
+Subject: ${mailOptions.subject}
+Body:
+Tài khoản: ${username}
+Mật khẩu: ${password}
+=========================================
+    `);
+    return;
+  }
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`[Email Welcome] Sent successfully to ${email}`);
+  } catch (err) {
+    console.error(`[Email Welcome] Failed to send email to ${email}:`, err.message);
+  }
+}
 
 // Configure JSON payload limit to support large base64 uploads (e.g. scans up to 10MB)
 app.use(express.json({ limit: '15mb' }));
@@ -367,6 +429,16 @@ async function initializeDatabase() {
       );
     `);
 
+    // 10. Create System Backups Table (Neon persistent backup)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS system_backups (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        backup_data JSONB NOT NULL,
+        summary JSONB NOT NULL
+      );
+    `);
+
     console.log('Seeding administrative accounts...');
 
     // Seed Admin (SysAdmin) Account
@@ -431,14 +503,41 @@ async function initializeDatabase() {
   }
 }
 
-// Start Database Initialization
-initializeDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-  });
-}).catch(err => {
-  console.error('Failed to initialize database, server not started:', err);
+// Support Lazy Database Initialization for Serverless environments (like Vercel)
+let dbInitialized = false;
+let dbInitializationPromise = null;
+
+async function ensureDbInitialized() {
+  if (dbInitialized) return;
+  if (!dbInitializationPromise) {
+    dbInitializationPromise = initializeDatabase().then(() => {
+      dbInitialized = true;
+    });
+  }
+  await dbInitializationPromise;
+}
+
+// Middleware to auto-initialize Neon database on first request
+app.use(async (req, res, next) => {
+  try {
+    await ensureDbInitialized();
+    next();
+  } catch (err) {
+    console.error('Database initialization failed:', err);
+    res.status(500).json({ error: 'Database initialization failed: ' + err.message });
+  }
 });
+
+// Start server locally (if not on Vercel)
+if (!process.env.VERCEL) {
+  ensureDbInitialized().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
+  }).catch(err => {
+    console.error('Failed to initialize database locally:', err);
+  });
+}
 
 async function recalculateRotationDates(client, practitionerId) {
   // Fetch practitioner's start_date
@@ -741,9 +840,9 @@ app.get('/api/supervisors', async (req, res) => {
       SELECT s.*, (
         SELECT COUNT(DISTINCT p.id)
         FROM practitioners p
-        LEFT JOIN practitioner_rotations r ON p.id = r.practitioner_id AND r.status = 'Đang thực hành'
+        JOIN practitioner_rotations r ON p.id = r.practitioner_id
         WHERE p.status = 'Đang thực hành'
-          AND (p.supervisor_id = s.id OR r.supervisor_id = s.id)
+          AND r.supervisor_id = s.id
       ) as active_trainees
       FROM supervisors s
       ORDER BY s.name ASC
@@ -867,9 +966,20 @@ app.delete('/api/supervisors/:id', async (req, res) => {
 app.get('/api/practitioners', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT p.*, s.name as supervisor_name 
+      SELECT p.*,
+             (
+               SELECT s.name
+               FROM practitioner_rotations r
+               JOIN supervisors s ON r.supervisor_id = s.id
+               WHERE r.practitioner_id = p.id AND r.status = 'Đang thực hành'
+               LIMIT 1
+             ) as supervisor_name,
+             (
+               SELECT COALESCE(ARRAY_AGG(r.supervisor_id), '{}')
+               FROM practitioner_rotations r
+               WHERE r.practitioner_id = p.id AND r.supervisor_id IS NOT NULL
+             ) as rotation_supervisor_ids
       FROM practitioners p
-      LEFT JOIN supervisors s ON p.supervisor_id = s.id
       ORDER BY p.name ASC
     `);
     res.json(result.rows);
@@ -883,7 +993,8 @@ app.get('/api/practitioners/:id', async (req, res) => {
     const result = await pool.query(`
       SELECT p.*, s.name as supervisor_name, s.license_number as supervisor_license, s.specialty as supervisor_specialty
       FROM practitioners p
-      LEFT JOIN supervisors s ON p.supervisor_id = s.id
+      LEFT JOIN practitioner_rotations r ON p.id = r.practitioner_id AND r.status = 'Đang thực hành'
+      LEFT JOIN supervisors s ON r.supervisor_id = s.id
       WHERE p.id = $1
     `, [req.params.id]);
     
@@ -1008,7 +1119,7 @@ app.post('/api/practitioners/bulk', async (req, res) => {
         const uRes = await client.query(
           `INSERT INTO users (username, password, role, name, email, phone)
            VALUES ($1, $2, 'Học viên', $3, $4, $5) RETURNING id`,
-          [uVal, '123456', name, email || null, phone || null]
+          [uVal, password || '123456', name, email || null, phone || null]
         );
         const userId = uRes.rows[0].id;
 
@@ -1039,6 +1150,11 @@ app.post('/api/practitioners/bulk', async (req, res) => {
 
         await client.query('COMMIT');
         results.push(result.rows[0]);
+        
+        // Send welcome email in background
+        sendWelcomeEmail(email, name, uVal, password || '123456').catch(err => {
+          console.error('[Email Welcome Background Error]', err);
+        });
       } catch (rowErr) {
         await client.query('ROLLBACK');
         errors.push(`Dòng ${i + 1}: Lỗi lưu CSDL (${rowErr.message})`);
@@ -1578,38 +1694,41 @@ app.post('/api/evaluations', async (req, res) => {
     rating_experience,
     rating_growth,
     rating_attitude,
-    rating_discipline
+    rating_discipline,
+    by_manager
   } = req.body;
   try {
-    // 1. Enforce assigned stage supervisor check: "người hướng dẫn giai đoạn nào thì được đánh giá học viên giai đoạn đó"
-    if (department !== 'Đánh giá chung') {
-      const rotCheck = await pool.query(
-        'SELECT supervisor_id FROM practitioner_rotations WHERE practitioner_id = $1 AND name = $2',
-        [practitioner_id, department]
-      );
-      if (rotCheck.rows.length > 0) {
-        const assignedSupervisorId = rotCheck.rows[0].supervisor_id;
-        if (!assignedSupervisorId) {
+    // 1. Enforce assigned stage supervisor check (skip if created by a manager)
+    if (!by_manager) {
+      if (department !== 'Đánh giá chung') {
+        const rotCheck = await pool.query(
+          'SELECT supervisor_id FROM practitioner_rotations WHERE practitioner_id = $1 AND name = $2',
+          [practitioner_id, department]
+        );
+        if (rotCheck.rows.length > 0) {
+          const assignedSupervisorId = rotCheck.rows[0].supervisor_id;
+          if (!assignedSupervisorId) {
+            return res.status(400).json({
+              error: `Giai đoạn thực hành '${department}' chưa được phân công người hướng dẫn.`
+            });
+          }
+          if (assignedSupervisorId !== evaluator_id) {
+            return res.status(400).json({
+              error: `Bạn không phải là người hướng dẫn được phân công cho giai đoạn '${department}'.`
+            });
+          }
+        }
+      } else {
+        // For "Đánh giá chung", evaluator must be assigned to at least one stage of this practitioner
+        const rotCheckAny = await pool.query(
+          'SELECT COUNT(*) as count FROM practitioner_rotations WHERE practitioner_id = $1 AND supervisor_id = $2',
+          [practitioner_id, evaluator_id]
+        );
+        if (parseInt(rotCheckAny.rows[0].count) === 0) {
           return res.status(400).json({
-            error: `Giai đoạn thực hành '${department}' chưa được phân công người hướng dẫn.`
+            error: `Bạn phải là người hướng dẫn của ít nhất một giai đoạn thực hành để thực hiện đánh giá chung.`
           });
         }
-        if (assignedSupervisorId !== evaluator_id) {
-          return res.status(400).json({
-            error: `Bạn không phải là người hướng dẫn được phân công cho giai đoạn '${department}'.`
-          });
-        }
-      }
-    } else {
-      // For "Đánh giá chung", evaluator must be assigned to at least one stage of this practitioner
-      const rotCheckAny = await pool.query(
-        'SELECT COUNT(*) as count FROM practitioner_rotations WHERE practitioner_id = $1 AND supervisor_id = $2',
-        [practitioner_id, evaluator_id]
-      );
-      if (parseInt(rotCheckAny.rows[0].count) === 0) {
-        return res.status(400).json({
-          error: `Bạn phải là người hướng dẫn của ít nhất một giai đoạn thực hành để thực hiện đánh giá chung.`
-        });
       }
     }
 
@@ -1718,7 +1837,8 @@ app.put('/api/evaluations/:id', async (req, res) => {
     rating_experience,
     rating_growth,
     rating_attitude,
-    rating_discipline
+    rating_discipline,
+    by_manager
   } = req.body;
   try {
     // 1. Get current evaluation
@@ -1728,35 +1848,37 @@ app.put('/api/evaluations/:id', async (req, res) => {
     }
     const currEval = currRes.rows[0];
 
-    // 2. Validate matching supervisor as requested
-    if (department !== 'Đánh giá chung' && evaluator_id) {
-      const rotCheck = await pool.query(
-        'SELECT supervisor_id FROM practitioner_rotations WHERE practitioner_id = $1 AND name = $2',
-        [currEval.practitioner_id, department]
-      );
-      if (rotCheck.rows.length > 0) {
-        const assignedSupervisorId = rotCheck.rows[0].supervisor_id;
-        if (!assignedSupervisorId) {
+    // 2. Validate matching supervisor as requested (skip if edited by a manager)
+    if (!by_manager) {
+      if (department !== 'Đánh giá chung' && evaluator_id) {
+        const rotCheck = await pool.query(
+          'SELECT supervisor_id FROM practitioner_rotations WHERE practitioner_id = $1 AND name = $2',
+          [currEval.practitioner_id, department]
+        );
+        if (rotCheck.rows.length > 0) {
+          const assignedSupervisorId = rotCheck.rows[0].supervisor_id;
+          if (!assignedSupervisorId) {
+            return res.status(400).json({
+              error: `Giai đoạn thực hành '${department}' chưa được phân công người hướng dẫn.`
+            });
+          }
+          if (assignedSupervisorId !== evaluator_id) {
+            return res.status(400).json({
+              error: `Bạn không phải là người hướng dẫn được phân công cho giai đoạn '${department}'.`
+            });
+          }
+        }
+      } else if (evaluator_id) {
+        // For "Đánh giá chung", evaluator must be assigned to at least one stage of this practitioner
+        const rotCheckAny = await pool.query(
+          'SELECT COUNT(*) as count FROM practitioner_rotations WHERE practitioner_id = $1 AND supervisor_id = $2',
+          [currEval.practitioner_id, evaluator_id]
+        );
+        if (parseInt(rotCheckAny.rows[0].count) === 0) {
           return res.status(400).json({
-            error: `Giai đoạn thực hành '${department}' chưa được phân công người hướng dẫn.`
+            error: `Bạn phải là người hướng dẫn của ít nhất một giai đoạn thực hành để thực hiện đánh giá chung.`
           });
         }
-        if (assignedSupervisorId !== evaluator_id) {
-          return res.status(400).json({
-            error: `Bạn không phải là người hướng dẫn được phân công cho giai đoạn '${department}'.`
-          });
-        }
-      }
-    } else if (evaluator_id) {
-      // For "Đánh giá chung", evaluator must be assigned to at least one stage of this practitioner
-      const rotCheckAny = await pool.query(
-        'SELECT COUNT(*) as count FROM practitioner_rotations WHERE practitioner_id = $1 AND supervisor_id = $2',
-        [currEval.practitioner_id, evaluator_id]
-      );
-      if (parseInt(rotCheckAny.rows[0].count) === 0) {
-        return res.status(400).json({
-          error: `Bạn phải là người hướng dẫn của ít nhất một giai đoạn thực hành để thực hiện đánh giá chung.`
-        });
       }
     }
 
@@ -1880,153 +2002,282 @@ app.post('/api/notifications/read-all', async (req, res) => {
 });
 
 // ==========================================
-// API: SYSTEM BACKUP & RESTORE SIMULATION
+// API: SYSTEM BACKUP & RESTORE (Neon DB, File, & JSON Import/Export)
 // ==========================================
 let backupStore = null;
 
-app.post('/api/system/backup', async (req, res) => {
-  try {
-    const sups = await pool.query('SELECT * FROM supervisors');
-    const pracs = await pool.query('SELECT * FROM practitioners');
-    const logs = await pool.query('SELECT * FROM practice_logs');
-    const evals = await pool.query('SELECT * FROM evaluations');
-    const trains = await pool.query('SELECT * FROM supplemental_training');
-    const rots = await pool.query('SELECT * FROM practitioner_rotations');
-    const users = await pool.query('SELECT * FROM users');
-    const depts = await pool.query('SELECT * FROM departments');
+async function getBackupData(client) {
+  const sups = await client.query('SELECT * FROM supervisors');
+  const pracs = await client.query('SELECT * FROM practitioners');
+  const logs = await client.query('SELECT * FROM practice_logs');
+  const evals = await client.query('SELECT * FROM evaluations');
+  const trains = await client.query('SELECT * FROM supplemental_training');
+  const rots = await client.query('SELECT * FROM practitioner_rotations');
+  const users = await client.query('SELECT * FROM users');
+  const depts = await client.query('SELECT * FROM departments');
+  const notifs = await client.query('SELECT * FROM notifications');
 
-    backupStore = {
-      timestamp: new Date(),
-      users: users.rows,
-      supervisors: sups.rows,
-      practitioners: pracs.rows,
-      logs: logs.rows,
-      evaluations: evals.rows,
-      training: trains.rows,
-      rotations: rots.rows,
-      departments: depts.rows
-    };
+  return {
+    timestamp: new Date(),
+    users: users.rows,
+    supervisors: sups.rows,
+    practitioners: pracs.rows,
+    logs: logs.rows,
+    evaluations: evals.rows,
+    training: trains.rows,
+    rotations: rots.rows,
+    departments: depts.rows,
+    notifications: notifs.rows
+  };
+}
 
-    res.json({
-      message: 'Hệ thống đã được sao lưu thành công!',
-      timestamp: backupStore.timestamp,
-      summary: {
-        users: backupStore.users.length,
-        supervisors: backupStore.supervisors.length,
-        practitioners: backupStore.practitioners.length,
-        logs: backupStore.logs.length,
-        evaluations: backupStore.evaluations.length,
-        training: backupStore.training.length,
-        rotations: backupStore.rotations.length,
-        departments: backupStore.departments.length
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+async function performRestore(client, backup) {
+  // Clear existing
+  await client.query('DELETE FROM notifications;');
+  await client.query('DELETE FROM supplemental_training;');
+  await client.query('DELETE FROM evaluations;');
+  await client.query('DELETE FROM practice_logs;');
+  await client.query('DELETE FROM practitioner_rotations;');
+  await client.query('DELETE FROM practitioners;');
+  await client.query('DELETE FROM supervisors;');
+  await client.query('DELETE FROM users;');
+  await client.query('DELETE FROM departments;');
 
-app.post('/api/system/restore', async (req, res) => {
-  if (!backupStore) {
-    return res.status(400).json({ error: 'Chưa có bản sao lưu nào trong phiên hoạt động hiện tại.' });
-  }
-  
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    
-    // Clear existing
-    await client.query('DELETE FROM notifications;');
-    await client.query('DELETE FROM supplemental_training;');
-    await client.query('DELETE FROM evaluations;');
-    await client.query('DELETE FROM practice_logs;');
-    await client.query('DELETE FROM practitioner_rotations;');
-    await client.query('DELETE FROM practitioners;');
-    await client.query('DELETE FROM supervisors;');
-    await client.query('DELETE FROM users;');
-    await client.query('DELETE FROM departments;');
-
-    // Restore Users
-    for (const u of backupStore.users) {
+  // Restore Users
+  if (backup.users) {
+    for (const u of backup.users) {
       await client.query(
         'INSERT INTO users (id, username, password, role, name, email, phone, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
         [u.id, u.username, u.password, u.role, u.name, u.email, u.phone, u.created_at]
       );
     }
+  }
 
-    // Restore Supervisors
-    for (const s of backupStore.supervisors) {
+  // Restore Supervisors
+  if (backup.supervisors) {
+    for (const s of backup.supervisors) {
       await client.query(
         'INSERT INTO supervisors (id, user_id, name, dob, gender, email, phone, license_number, specialty, license_date, department, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
         [s.id, s.user_id, s.name, s.dob, s.gender, s.email, s.phone, s.license_number, s.specialty, s.license_date, s.department, s.created_at]
       );
     }
+  }
 
-    // Restore Departments
-    if (backupStore.departments) {
-      for (const d of backupStore.departments) {
-        await client.query(
-          'INSERT INTO departments (id, name, created_at) VALUES ($1, $2, $3)',
-          [d.id, d.name, d.created_at]
-        );
-      }
+  // Restore Departments
+  if (backup.departments) {
+    for (const d of backup.departments) {
+      await client.query(
+        'INSERT INTO departments (id, name, created_at) VALUES ($1, $2, $3)',
+        [d.id, d.name, d.created_at]
+      );
     }
+  }
 
-    // Restore Practitioners
-    for (const p of backupStore.practitioners) {
+  // Restore Practitioners
+  if (backup.practitioners) {
+    for (const p of backup.practitioners) {
       await client.query(
         `INSERT INTO practitioners (id, user_id, name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, status, profile_status, rejection_reason, avatar_url, degree_scan_url, national_test_score, national_test_result, national_test_date, created_at) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
         [p.id, p.user_id, p.name, p.dob, p.gender, p.email, p.phone, p.degree, p.specialty, p.program, p.start_date, p.supervisor_id, p.status, p.profile_status, p.rejection_reason, p.avatar_url, p.degree_scan_url, p.national_test_score, p.national_test_result, p.national_test_date, p.created_at]
       );
     }
+  }
 
-    // Restore Rotations
-    if (backupStore.rotations) {
-      for (const r of backupStore.rotations) {
-        await client.query(
-          'INSERT INTO practitioner_rotations (id, practitioner_id, name, duration, start_date, end_date, status, order_index, supervisor_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-          [r.id, r.practitioner_id, r.name, r.duration, r.start_date, r.end_date, r.status, r.order_index, r.supervisor_id, r.created_at]
-        );
-      }
+  // Restore Rotations
+  if (backup.rotations) {
+    for (const r of backup.rotations) {
+      await client.query(
+        'INSERT INTO practitioner_rotations (id, practitioner_id, name, duration, start_date, end_date, status, order_index, supervisor_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+        [r.id, r.practitioner_id, r.name, r.duration, r.start_date, r.end_date, r.status, r.order_index, r.supervisor_id, r.created_at]
+      );
     }
+  }
 
-    // Restore Logs
-    for (const l of backupStore.logs) {
+  // Restore Logs
+  if (backup.logs) {
+    for (const l of backup.logs) {
       await client.query(
         'INSERT INTO practice_logs (id, practitioner_id, log_date, department, content, procedures, quantity, status, supervisor_comment, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
         [l.id, l.practitioner_id, l.log_date, l.department, l.content, l.procedures, l.quantity, l.status, l.supervisor_comment, l.created_at]
       );
     }
+  }
 
-    // Restore Evaluations
-    for (const e of backupStore.evaluations) {
+  // Restore Evaluations
+  if (backup.evaluations) {
+    for (const e of backup.evaluations) {
       await client.query(
         'INSERT INTO evaluations (id, practitioner_id, department, evaluation_type, rating_specialty, rating_ethics, rating_law, rating_communication, rating_safety, result, comment, evaluator_id, evaluation_date, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
         [e.id, e.practitioner_id, e.department, e.evaluation_type, e.rating_specialty, e.rating_ethics, e.rating_law, e.rating_communication, e.rating_safety, e.result, e.comment, e.evaluator_id, e.evaluation_date, e.created_at]
       );
     }
+  }
 
-    // Restore Training
-    for (const t of backupStore.training) {
+  // Restore Training
+  if (backup.training) {
+    for (const t of backup.training) {
       await client.query(
         'INSERT INTO supplemental_training (id, practitioner_id, session_date, topic, hours, speaker, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [t.id, t.practitioner_id, t.session_date, t.topic, t.hours, t.speaker, t.created_at]
       );
     }
+  }
 
-    // Reset SERIAL sequences
-    await client.query("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users;");
-    await client.query("SELECT setval(pg_get_serial_sequence('departments', 'id'), COALESCE(MAX(id), 1)) FROM departments;");
-    await client.query("SELECT setval(pg_get_serial_sequence('supervisors', 'id'), COALESCE(MAX(id), 1)) FROM supervisors;");
-    await client.query("SELECT setval(pg_get_serial_sequence('practitioners', 'id'), COALESCE(MAX(id), 1)) FROM practitioners;");
-    await client.query("SELECT setval(pg_get_serial_sequence('practitioner_rotations', 'id'), COALESCE(MAX(id), 1)) FROM practitioner_rotations;");
-    await client.query("SELECT setval(pg_get_serial_sequence('practice_logs', 'id'), COALESCE(MAX(id), 1)) FROM practice_logs;");
-    await client.query("SELECT setval(pg_get_serial_sequence('evaluations', 'id'), COALESCE(MAX(id), 1)) FROM evaluations;");
-    await client.query("SELECT setval(pg_get_serial_sequence('supplemental_training', 'id'), COALESCE(MAX(id), 1)) FROM supplemental_training;");
+  // Restore Notifications (if available)
+  if (backup.notifications) {
+    for (const n of backup.notifications) {
+      await client.query(
+        'INSERT INTO notifications (id, user_id, title, message, is_read, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+        [n.id, n.user_id, n.title, n.message, n.is_read, n.created_at]
+      );
+    }
+  }
 
+  // Reset SERIAL sequences
+  await client.query("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users;");
+  await client.query("SELECT setval(pg_get_serial_sequence('departments', 'id'), COALESCE(MAX(id), 1)) FROM departments;");
+  await client.query("SELECT setval(pg_get_serial_sequence('supervisors', 'id'), COALESCE(MAX(id), 1)) FROM supervisors;");
+  await client.query("SELECT setval(pg_get_serial_sequence('practitioners', 'id'), COALESCE(MAX(id), 1)) FROM practitioners;");
+  await client.query("SELECT setval(pg_get_serial_sequence('practitioner_rotations', 'id'), COALESCE(MAX(id), 1)) FROM practitioner_rotations;");
+  await client.query("SELECT setval(pg_get_serial_sequence('practice_logs', 'id'), COALESCE(MAX(id), 1)) FROM practice_logs;");
+  await client.query("SELECT setval(pg_get_serial_sequence('evaluations', 'id'), COALESCE(MAX(id), 1)) FROM evaluations;");
+  await client.query("SELECT setval(pg_get_serial_sequence('supplemental_training', 'id'), COALESCE(MAX(id), 1)) FROM supplemental_training;");
+  await client.query("SELECT setval(pg_get_serial_sequence('notifications', 'id'), COALESCE(MAX(id), 1)) FROM notifications;");
+}
+
+app.post('/api/system/backup', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const backupData = await getBackupData(client);
+    backupStore = backupData; // Sync RAM backup
+
+    const summary = {
+      users: backupData.users.length,
+      supervisors: backupData.supervisors.length,
+      practitioners: backupData.practitioners.length,
+      logs: backupData.logs.length,
+      evaluations: backupData.evaluations.length,
+      training: backupData.training.length,
+      rotations: backupData.rotations.length,
+      departments: backupData.departments.length,
+      notifications: backupData.notifications.length
+    };
+
+    // Save to Neon Database system_backups
+    await client.query(
+      'INSERT INTO system_backups (backup_data, summary) VALUES ($1, $2)',
+      [JSON.stringify(backupData), JSON.stringify(summary)]
+    );
+
+    // Save to server local file (secondary fallback)
+    try {
+      fs.writeFileSync(path.join(__dirname, 'database_backup.json'), JSON.stringify(backupData, null, 2), 'utf8');
+    } catch (fsErr) {
+      console.error('Error writing database_backup.json:', fsErr);
+    }
+
+    res.json({
+      message: 'Hệ thống đã được sao lưu thành công và đồng bộ lên Neon Cloud!',
+      timestamp: backupData.timestamp,
+      summary
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+app.post('/api/system/restore', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    let restoreData = null;
+
+    // 1. Try fetching from Neon Database system_backups
+    try {
+      const dbBackupRes = await client.query('SELECT backup_data FROM system_backups ORDER BY timestamp DESC LIMIT 1');
+      if (dbBackupRes.rows.length > 0) {
+        restoreData = dbBackupRes.rows[0].backup_data;
+        console.log('Restoring from latest Neon Database backup...');
+      }
+    } catch (dbErr) {
+      console.error('Error fetching backup from Neon DB:', dbErr);
+    }
+
+    // 2. Try fetching from local file backup
+    if (!restoreData) {
+      const localBackupPath = path.join(__dirname, 'database_backup.json');
+      if (fs.existsSync(localBackupPath)) {
+        try {
+          restoreData = JSON.parse(fs.readFileSync(localBackupPath, 'utf8'));
+          console.log('Restoring from local file backup fallback...');
+        } catch (fsErr) {
+          console.error('Error reading local file backup:', fsErr);
+        }
+      }
+    }
+
+    // 3. Fallback to RAM memory backup
+    if (!restoreData) {
+      restoreData = backupStore;
+      if (restoreData) {
+        console.log('Restoring from RAM memory backup fallback...');
+      }
+    }
+
+    if (!restoreData) {
+      return res.status(400).json({ error: 'Không tìm thấy bản sao lưu nào trên Neon DB, đĩa local, hoặc bộ nhớ RAM.' });
+    }
+
+    await client.query('BEGIN');
+    await performRestore(client, restoreData);
     await client.query('COMMIT');
+
     res.json({ message: 'Hệ thống đã phục hồi dữ liệu từ bản sao lưu thành công!' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/api/system/export', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const backupData = await getBackupData(client);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=qlhn_backup_${new Date().toISOString().split('T')[0]}.json`);
+    res.send(JSON.stringify(backupData, null, 2));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+app.post('/api/system/import', async (req, res) => {
+  const backupData = req.body;
+  if (!backupData || !backupData.users || !backupData.supervisors) {
+    return res.status(400).json({ error: 'Dữ liệu tải lên không hợp lệ hoặc thiếu thông tin cốt lõi (users, supervisors).' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await performRestore(client, backupData);
+    await client.query('COMMIT');
+
+    // Sync memory and local file backup
+    backupStore = backupData;
+    try {
+      fs.writeFileSync(path.join(__dirname, 'database_backup.json'), JSON.stringify(backupData, null, 2), 'utf8');
+    } catch (fsErr) {
+      console.error('Error writing local backup file during import:', fsErr);
+    }
+
+    res.json({ message: 'Đã nhập tệp sao lưu và phục hồi dữ liệu thành công lên Neon!' });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
@@ -2213,3 +2464,5 @@ app.get('/api/templates/excel', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+module.exports = app;

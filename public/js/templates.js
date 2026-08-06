@@ -1,5 +1,15 @@
 // Template generator for official practice certificates in Vietnam
 const Templates = {
+  formatSupervisorsText(supervisors) {
+    if (Array.isArray(supervisors) && supervisors.length > 0) {
+      return supervisors.map(s => `<strong>${s.name}</strong> (Số GPHN: ${s.license_number || 'N/A'})`).join(', ');
+    } else if (supervisors && supervisors.name) {
+      return `<strong>${supervisors.name}</strong> (Số GPHN: ${supervisors.license_number || 'N/A'})`;
+    } else {
+      return 'N/A';
+    }
+  },
+
   // Mẫu 07 Phụ lục I Nghị định 96/2023/NĐ-CP
   generateDecree96Certificate(practitioner, supervisor, evaluations, trainingSessions) {
     const today = new Date();
@@ -47,8 +57,8 @@ const Templates = {
           
           <table class="cert-info-table">
             <tr>
-              <td style="width: 25%;">Họ và tên người thực hành:</td>
-              <td style="width: 45%;"><strong>${practitioner.name.toUpperCase()}</strong></td>
+              <td style="width: 32%;">Họ và tên người thực hành:</td>
+              <td style="width: 38%;"><strong>${practitioner.name.toUpperCase()}</strong></td>
               <td style="width: 15%;">Giới tính:</td>
               <td style="width: 15%;">${practitioner.gender}</td>
             </tr>
@@ -76,7 +86,7 @@ const Templates = {
             </tr>
             <tr>
               <td>Người hướng dẫn:</td>
-              <td colspan="3"><strong>${supervisor ? supervisor.name : 'N/A'}</strong> (Số GPHN: ${supervisor ? supervisor.license_number : 'N/A'})</td>
+              <td colspan="3">${Templates.formatSupervisorsText(supervisor)}</td>
             </tr>
           </table>
 
@@ -104,7 +114,7 @@ const Templates = {
             <div class="signer-title">GIÁM ĐỐC TRUNG TÂM Y TẾ</div>
             <div class="signer-sub">(Ký tên, ghi rõ họ tên và đóng dấu)</div>
             <div class="signer-space"></div>
-            <div class="signer-name">PGS. TS. NGUYỄN LÂM SƠN</div>
+            <div class="signer-name">Bs.CKII. NGUYỄN THÀNH TÂN</div>
           </div>
         </div>
       </div>
@@ -152,8 +162,8 @@ const Templates = {
           
           <table class="cert-info-table">
             <tr>
-              <td style="width: 25%;">Họ và tên người thực hành:</td>
-              <td style="width: 45%;"><strong>${practitioner.name.toUpperCase()}</strong></td>
+              <td style="width: 32%;">Họ và tên người thực hành:</td>
+              <td style="width: 38%;"><strong>${practitioner.name.toUpperCase()}</strong></td>
               <td style="width: 15%;">Giới tính:</td>
               <td style="width: 15%;">${practitioner.gender}</td>
             </tr>
@@ -183,7 +193,7 @@ const Templates = {
             </tr>
             <tr>
               <td>Người hướng dẫn chính:</td>
-              <td colspan="3"><strong>${supervisor ? supervisor.name : 'N/A'}</strong> (Số CCHN: ${supervisor ? supervisor.license_number : 'N/A'})</td>
+              <td colspan="3">${Templates.formatSupervisorsText(supervisor)}</td>
             </tr>
           </table>
 
@@ -206,7 +216,7 @@ const Templates = {
             <div class="signer-title">GIÁM ĐỐC TRUNG TÂM Y TẾ</div>
             <div class="signer-sub">(Ký tên, ghi rõ họ tên và đóng dấu)</div>
             <div class="signer-space"></div>
-            <div class="signer-name">PGS. TS. NGUYỄN LÂM SƠN</div>
+            <div class="signer-name">Bs.CKII. NGUYỄN THÀNH TÂN</div>
           </div>
         </div>
       </div>
