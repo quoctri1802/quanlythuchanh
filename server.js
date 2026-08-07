@@ -1252,7 +1252,67 @@ app.put('/api/practitioners/:id', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    if (supervisor_id && (status === 'Đang thực hành')) {
+    const prevPracRes = await client.query('SELECT * FROM practitioners WHERE id = $1', [req.params.id]);
+    if (prevPracRes.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ error: 'Practitioner not found' });
+    }
+    const prevPrac = prevPracRes.rows[0];
+    
+    let finalUsername = null;
+    let finalStatus = status;
+
+    if (profile_status === 'Đã duyệt' && prevPrac.profile_status !== 'Đã duyệt') {
+      finalStatus = 'Đang thực hành'; // Auto set study status if approved
+
+      // Generate sequence number for bvlcXXXX
+      const countRes = await client.query("SELECT COUNT(*) FROM users WHERE username LIKE 'bvlc%'");
+      const nextNum = parseInt(countRes.rows[0].count) + 1;
+      const xxxx = String(nextNum).padStart(4, '0');
+      
+      const removeVietnameseTones = (str) => {
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+        str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+        str = str.replace(/đ/g, "d");
+        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+        str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+        str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+        str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+        str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+        str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+        str = str.replace(/Đ/g, "D");
+        str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+        str = str.replace(/\u02C6|\u0306|\u031B/g, "");
+        return str;
+      };
+      
+      const cleanName = removeVietnameseTones(name || prevPrac.name).toLowerCase().replace(/[^a-z0-9]/g, '');
+      finalUsername = `bvlc${xxxx}-${cleanName}`;
+      
+      if (prevPrac.user_id) {
+        await client.query(
+          "UPDATE users SET username = $1, password = '123456' WHERE id = $2",
+          [finalUsername, prevPrac.user_id]
+        );
+      }
+      
+      if (prevPrac.user_id) {
+        const msg = `Hồ sơ đăng ký thực hành của bạn tại TTYT Liên Chiểu đã được duyệt thành công. Tài khoản đăng nhập mới của bạn là: ${finalUsername}, mật khẩu: 123456.`;
+        await client.query('INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)', [prevPrac.user_id, 'Kết quả duyệt hồ sơ', msg]);
+      }
+    } else if (profile_status === 'Từ chối' && prevPrac.profile_status !== 'Từ chối') {
+      finalStatus = 'Chưa bắt đầu';
+      if (prevPrac.user_id) {
+        const msg = `Hồ sơ thực hành của bạn bị từ chối duyệt. Lý do: ${rejection_reason || ''}`;
+        await client.query('INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)', [prevPrac.user_id, 'Kết quả duyệt hồ sơ', msg]);
+      }
+    }
+
+    if (supervisor_id && (finalStatus === 'Đang thực hành')) {
       const activeCountRes = await client.query(`
         SELECT COUNT(DISTINCT p.id) as active_count
         FROM practitioners p
@@ -1265,13 +1325,14 @@ app.put('/api/practitioners/:id', async (req, res) => {
         return res.status(400).json({ error: 'Người hướng dẫn này đã vượt quá số lượng 5 học viên hướng dẫn cùng lúc.' });
       }
     }
+
     const result = await client.query(
       `UPDATE practitioners 
        SET name=$1, dob=$2, gender=$3, email=$4, phone=$5, degree=$6, specialty=$7, program=$8, start_date=$9, supervisor_id=$10, 
            status=COALESCE($11, status), profile_status=COALESCE($12, profile_status), rejection_reason=COALESCE($13, rejection_reason), 
            avatar_url=COALESCE($14, avatar_url), degree_scan_url=COALESCE($15, degree_scan_url)
        WHERE id=$16 RETURNING *`,
-      [name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, status || null, profile_status || null, rejection_reason || null, avatar_url || null, degree_scan_url || null, req.params.id]
+      [name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, finalStatus || null, profile_status || null, rejection_reason || null, avatar_url || null, degree_scan_url || null, req.params.id]
     );
     await recalculateRotationDates(client, req.params.id);
     await client.query('COMMIT');

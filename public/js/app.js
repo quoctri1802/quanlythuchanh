@@ -380,8 +380,14 @@ function setupGlobalEvents() {
     } catch (err) {
       alert('Lỗi kết nối máy chủ: ' + err.message);
     }
+  // Toggle rejection reason input on approval status change
+  document.getElementById('reg-profile-status')?.addEventListener('change', (e) => {
+    const reasonGroup = document.getElementById('reg-rejection-reason-group');
+    if (reasonGroup) {
+      reasonGroup.style.display = e.target.value === 'Từ chối' ? 'block' : 'none';
+    }
   });
-}
+});
 
 // Reload existing user session on boot F5
 async function reloadUserSession(userId) {
@@ -989,6 +995,7 @@ document.getElementById('btn-register-practitioner').addEventListener('click', (
   modal.querySelector('h3').innerText = 'Tiếp nhận & Đăng ký Hồ sơ Thực hành mới';
   document.getElementById('form-register-practitioner').reset();
   document.getElementById('reg-username').disabled = false;
+  document.getElementById('reg-approval-row').style.display = 'none';
   
   const supervisorSelect = document.getElementById('reg-supervisor');
   supervisorSelect.innerHTML = '<option value="">-- Phân công người hướng dẫn chuyên môn --</option>';
@@ -1061,6 +1068,23 @@ function openEditPractitionerModal(p) {
   });
   
   supervisorSelect.value = p.supervisor_id || '';
+
+  const isManager = state.currentUser.role === 'Cán bộ quản lý' || state.currentUser.role === 'Quản trị viên';
+  const approvalRow = document.getElementById('reg-approval-row');
+  if (approvalRow) {
+    if (isManager) {
+      approvalRow.style.display = 'flex';
+      document.getElementById('reg-profile-status').value = p.profile_status || 'Chờ duyệt';
+      const reasonGroup = document.getElementById('reg-rejection-reason-group');
+      if (reasonGroup) {
+        reasonGroup.style.display = p.profile_status === 'Từ chối' ? 'block' : 'none';
+      }
+      document.getElementById('reg-rejection-reason').value = p.rejection_reason || '';
+    } else {
+      approvalRow.style.display = 'none';
+    }
+  }
+
   modal.classList.add('active');
 }
 
@@ -1089,6 +1113,11 @@ document.getElementById('form-register-practitioner').addEventListener('submit',
     avatar_url,
     degree_scan_url
   };
+
+  if (practitionerIdToEdit !== null) {
+    formData.profile_status = document.getElementById('reg-profile-status').value;
+    formData.rejection_reason = formData.profile_status === 'Từ chối' ? document.getElementById('reg-rejection-reason').value : '';
+  }
 
   try {
     const isEdit = practitionerIdToEdit !== null;
