@@ -2545,8 +2545,19 @@ function renderCompletionCertificateTabContent() {
     btn.className = 'btn btn-secondary';
     btn.style.padding = '4px 8px';
     btn.style.fontSize = '12px';
-    btn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Nhập kết quả thi';
-    btn.onclick = () => openNationalTestModal(practitioner.id);
+    
+    if (!allConditionsMet) {
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'not-allowed';
+      btn.title = 'Chưa đủ điều kiện thẩm định';
+      btn.innerHTML = '<i class="fa-solid fa-lock"></i> Chưa đủ điều kiện nhập điểm';
+      btn.onclick = () => {
+        alert('Học viên chưa đủ điều kiện thẩm định (thời gian thực hành, nhật ký lâm sàng, hoặc đánh giá cuối khóa chưa đạt)! Vui lòng hoàn thành đầy đủ các điều kiện bắt buộc trước khi nhập kết quả thi.');
+      };
+    } else {
+      btn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Nhập kết quả thi';
+      btn.onclick = () => openNationalTestModal(practitioner.id);
+    }
     testControls.appendChild(btn);
   }
 
