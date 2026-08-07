@@ -1462,6 +1462,14 @@ app.post('/api/practitioners/:id/assign-supervisor', async (req, res) => {
 app.post('/api/practitioners/:id/national-test', async (req, res) => {
   const { score, result, test_date } = req.body;
   try {
+    const pCheck = await pool.query('SELECT status FROM practitioners WHERE id = $1', [req.params.id]);
+    if (pCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy học viên.' });
+    }
+    if (pCheck.rows[0].status !== 'Đã hoàn thành') {
+      return res.status(400).json({ error: 'Học viên chưa hoàn thành thực hành lâm sàng, không thể nhập kết quả thi đánh giá năng lực.' });
+    }
+
     const updateRes = await pool.query(
       `UPDATE practitioners 
        SET national_test_score = $1, national_test_result = $2, national_test_date = $3

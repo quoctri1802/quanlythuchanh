@@ -2792,6 +2792,11 @@ function renderNationalExamsList() {
 
     const testDateText = p.national_test_date ? new Date(p.national_test_date).toLocaleDateString('vi-VN') : 'N/A';
 
+    const isCompletedPrac = p.status === 'Đã hoàn thành';
+    const btnHtml = isCompletedPrac
+      ? `<button class="btn btn-secondary btn-log-test" style="padding:4px 8px; font-size:12px;"><i class="fa-solid fa-square-plus"></i> Cập nhật điểm</button>`
+      : `<button class="btn btn-secondary btn-log-test" style="padding:4px 8px; font-size:12px; opacity: 0.6; cursor: not-allowed;" title="Chưa hoàn thành thực hành lâm sàng"><i class="fa-solid fa-lock"></i> Chưa hoàn thành</button>`;
+
     tr.innerHTML = `
       <td><strong>${p.name}</strong><br><small style="color:var(--text-secondary);">${p.degree}</small></td>
       <td>${p.specialty}</td>
@@ -2799,11 +2804,15 @@ function renderNationalExamsList() {
       <td><span style="font-weight:700;">${p.national_test_score !== null ? p.national_test_score : 'N/A'}</span></td>
       <td>${resultBadge}</td>
       <td>
-        <button class="btn btn-secondary btn-log-test" style="padding:4px 8px; font-size:12px;"><i class="fa-solid fa-square-plus"></i> Cập nhật điểm</button>
+        ${btnHtml}
       </td>
     `;
 
     tr.querySelector('.btn-log-test').addEventListener('click', () => {
+      if (!isCompletedPrac) {
+        alert('Học viên chưa hoàn thành thực hành lâm sàng! Chỉ học viên có trạng thái "Đã hoàn thành" mới được phép nhập kết quả thi đánh giá năng lực.');
+        return;
+      }
       openNationalTestModal(p.id);
     });
 
