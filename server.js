@@ -1462,12 +1462,34 @@ app.post('/api/practitioners/:id/assign-supervisor', async (req, res) => {
 app.post('/api/practitioners/:id/national-test', async (req, res) => {
   const { score, result, test_date } = req.body;
   try {
-    const pCheck = await pool.query('SELECT status FROM practitioners WHERE id = $1', [req.params.id]);
-    if (pCheck.rows.length === 0) {
+    const pRes = await pool.query('SELECT * FROM practitioners WHERE id = $1', [req.params.id]);
+    if (pRes.rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy học viên.' });
     }
-    if (pCheck.rows[0].status !== 'Đã hoàn thành') {
-      return res.status(400).json({ error: 'Học viên chưa hoàn thành thực hành lâm sàng, không thể nhập kết quả thi đánh giá năng lực.' });
+    const p = pRes.rows[0];
+
+    // 1. Time Elapsed check
+    let requiredMonths = p.specialty === 'Bác sĩ' ? 12 : 6;
+    if (p.program === 'TT21') requiredMonths = 18;
+    else if (p.specialty === 'Y sĩ' || p.specialty === 'Tâm lý lâm sàng') requiredMonths = 9;
+
+    const startDate = new Date(p.start_date);
+    const elapsedMonths = Math.abs(new Date() - startDate) / (1000 * 60 * 60 * 24 * 30.4375);
+    if (elapsedMonths < requiredMonths) {
+      return res.status(400).json({ error: `Chưa đủ thời gian thực hành theo Luật định (${requiredMonths} tháng). Hiện tại: ${elapsedMonths.toFixed(1)} tháng.` });
+    }
+
+    // 2. Approved Logs check
+    const logCheck = await pool.query("SELECT COUNT(*) as unconfirmed FROM practice_logs WHERE practitioner_id = $1 AND status <> 'Đã xác nhận'", [req.params.id]);
+    const totalLogsCheck = await pool.query("SELECT COUNT(*) as total FROM practice_logs WHERE practitioner_id = $1", [req.params.id]);
+    if (parseInt(totalLogsCheck.rows[0].total) === 0 || parseInt(logCheck.rows[0].unconfirmed) > 0) {
+      return res.status(400).json({ error: 'Chưa hoàn thành điều kiện: Tất cả nhật ký lâm sàng phải được phê duyệt.' });
+    }
+
+    // 3. Evaluations checks
+    const evalCheck = await pool.query("SELECT COUNT(*) as count FROM evaluations WHERE practitioner_id = $1 AND evaluation_type = 'Cuối khóa' AND result = 'Đạt'", [req.params.id]);
+    if (parseInt(evalCheck.rows[0].count) === 0) {
+      return res.status(400).json({ error: 'Chưa hoàn thành điều kiện: Phải có phiếu đánh giá tổng kết cuối khóa đạt.' });
     }
 
     const updateRes = await pool.query(
@@ -1477,16 +1499,16 @@ app.post('/api/practitioners/:id/national-test', async (req, res) => {
       [score, result, test_date, req.params.id]
     );
 
-    const p = updateRes.rows[0];
-    if (p.user_id) {
+    const updatedP = updateRes.rows[0];
+    if (updatedP.user_id) {
       await pool.query('INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)', [
-        p.user_id,
+        updatedP.user_id,
         'Kết quả kiểm tra đánh giá năng lực',
         `Kết quả kỳ thi ngày ${new Date(test_date).toLocaleDateString('vi-VN')} của bạn: ${result} (Điểm số: ${score})`
       ]);
     }
 
-    res.json(updateRes.rows[0]);
+    res.json(updatedP);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
