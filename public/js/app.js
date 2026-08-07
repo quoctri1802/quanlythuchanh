@@ -880,8 +880,10 @@ function renderPractitionersList() {
 
     let actionButtons = `<button class="btn-icon btn-view-det" title="Xem chi tiết lộ trình thực hành"><i class="fas fa-eye"></i></button>`;
     if (state.currentUser.role === 'Cán bộ quản lý') {
-      actionButtons += `<button class="btn-icon btn-edit-prac" title="Sửa thông tin học viên"><i class="fas fa-pen"></i></button>`;
-      actionButtons += `<button class="btn-icon btn-del-prac" title="Xóa học viên"><i class="fas fa-trash"></i></button>`;
+      if (!p.is_locked) {
+        actionButtons += `<button class="btn-icon btn-edit-prac" title="Sửa thông tin học viên"><i class="fas fa-pen"></i></button>`;
+        actionButtons += `<button class="btn-icon btn-del-prac" title="Xóa học viên"><i class="fas fa-trash"></i></button>`;
+      }
     }
 
     let approvalActionCell = profileBadge;
@@ -901,7 +903,7 @@ function renderPractitionersList() {
             ${p.avatar_url ? `<img src="${p.avatar_url}" style="width:100%; height:100%; object-fit:cover;">` : p.name.charAt(0)}
           </div>
           <div>
-            <strong>${p.name}</strong><br>
+            <strong>${p.name}</strong> ${p.is_locked ? `<i class="fa-solid fa-lock" style="color: var(--danger); font-size: 12px; margin-left: 4px;" title="Hồ sơ đã khóa"></i>` : ''}<br>
             <span style="font-size:11px; color:var(--text-secondary);">${p.degree}</span>
           </div>
         </div>
