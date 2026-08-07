@@ -807,7 +807,7 @@ function renderPractitionersList() {
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = `<tr><td colspan="9" style="text-align: center; color:var(--text-secondary); padding:24px;">Không tìm thấy học viên nào</td></tr>`;
+    container.innerHTML = `<tr><td colspan="10" style="text-align: center; color:var(--text-secondary); padding:24px;">Không tìm thấy học viên nào</td></tr>`;
     return;
   }
 
@@ -826,6 +826,25 @@ function renderPractitionersList() {
     const endDateObj = new Date(p.start_date);
     endDateObj.setMonth(endDateObj.getMonth() + durationMonths);
     const periodStr = `${startDateObj.toLocaleDateString('vi-VN')} - ${endDateObj.toLocaleDateString('vi-VN')}`;
+
+    // Calculate rotation progress
+    const totalRot = p.total_rotations_count || 0;
+    const completedRot = p.completed_rotations_count || 0;
+    const progressPercent = totalRot > 0 ? Math.round((completedRot / totalRot) * 100) : 0;
+    
+    const progressCell = `
+      <div style="min-width: 110px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="flex: 1; background-color: var(--border-color, #e2e8f0); height: 6px; border-radius: 3px; overflow: hidden; position: relative;">
+            <div style="width: ${progressPercent}%; background-color: var(--primary); height: 100%; border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+          <span style="font-size: 11px; font-weight: 600; color: var(--text-primary); min-width: 28px; text-align: right;">${progressPercent}%</span>
+        </div>
+        <small style="display: block; font-size: 10px; color: var(--text-secondary); margin-top: 2px;">
+          Đã xong ${completedRot}/${totalRot} khoa
+        </small>
+      </div>
+    `;
 
     let profileBadge = '';
     if (p.profile_status === 'Chờ duyệt') {
@@ -882,6 +901,7 @@ function renderPractitionersList() {
       <td>${p.specialty}</td>
       <td>${p.program === 'ND96' ? 'NĐ 96/2023' : 'TT 21/2020'}</td>
       <td style="font-size:12px; font-weight:500;">${periodStr}</td>
+      <td>${progressCell}</td>
       <td>${supervisorCell}</td>
       <td>${warningCell}</td>
       <td>${approvalActionCell}</td>

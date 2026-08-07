@@ -1004,6 +1004,11 @@ app.get('/api/practitioners', async (req, res) => {
              (
                SELECT COUNT(*)::INTEGER
                FROM practitioner_rotations r
+               WHERE r.practitioner_id = p.id AND r.status = 'Đã hoàn thành'
+             ) as completed_rotations_count,
+             (
+               SELECT COUNT(*)::INTEGER
+               FROM practitioner_rotations r
                WHERE r.practitioner_id = p.id
              ) as total_rotations_count
       FROM practitioners p
