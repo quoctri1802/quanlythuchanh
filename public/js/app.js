@@ -2101,8 +2101,9 @@ function renderEvaluationsTabContent() {
       `;
     }
 
+    const isLocked = state.activePractitionerDetail.practitioner.is_locked;
     const isEvaluator = state.currentSupervisor && state.currentSupervisor.id === e.evaluator_id;
-    const canModify = isManager || (isEvaluator && e.department !== 'Đánh giá chung');
+    const canModify = !isLocked && (isManager || (isEvaluator && e.department !== 'Đánh giá chung'));
 
     let modifyButtons = '';
     if (canModify) {

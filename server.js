@@ -2060,6 +2060,15 @@ app.put('/api/evaluations/:id', async (req, res) => {
     by_manager
   } = req.body;
   try {
+    const lockRes = await pool.query(`
+      SELECT p.is_locked 
+      FROM practitioners p
+      JOIN evaluations e ON p.id = e.practitioner_id
+      WHERE e.id = $1
+    `, [req.params.id]);
+    if (lockRes.rows.length > 0 && lockRes.rows[0].is_locked) {
+      return res.status(400).json({ error: 'Hồ sơ học viên này đã bị khóa. Không thể thực hiện thao tác.' });
+    }
     // 1. Get current evaluation
     const currRes = await pool.query('SELECT * FROM evaluations WHERE id = $1', [req.params.id]);
     if (currRes.rows.length === 0) {
@@ -2137,6 +2146,16 @@ app.put('/api/evaluations/:id', async (req, res) => {
 // Delete an evaluation
 app.delete('/api/evaluations/:id', async (req, res) => {
   try {
+    const lockRes = await pool.query(`
+      SELECT p.is_locked 
+      FROM practitioners p
+      JOIN evaluations e ON p.id = e.practitioner_id
+      WHERE e.id = $1
+    `, [req.params.id]);
+    if (lockRes.rows.length > 0 && lockRes.rows[0].is_locked) {
+      return res.status(400).json({ error: 'Hồ sơ học viên này đã bị khóa. Không thể thực hiện thao tác.' });
+    }
+
     const result = await pool.query('DELETE FROM evaluations WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Evaluation not found' });
