@@ -380,6 +380,8 @@ function setupGlobalEvents() {
     } catch (err) {
       alert('Lỗi kết nối máy chủ: ' + err.message);
     }
+  });
+
   // Toggle rejection reason input on approval status change
   document.getElementById('reg-profile-status')?.addEventListener('change', (e) => {
     const reasonGroup = document.getElementById('reg-rejection-reason-group');
@@ -387,7 +389,7 @@ function setupGlobalEvents() {
       reasonGroup.style.display = e.target.value === 'Từ chối' ? 'block' : 'none';
     }
   });
-});
+}
 
 // Reload existing user session on boot F5
 async function reloadUserSession(userId) {
