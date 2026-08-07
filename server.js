@@ -451,7 +451,7 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_evaluations_practitioner ON evaluations(practitioner_id);
       CREATE INDEX IF NOT EXISTS idx_evaluations_evaluator ON evaluations(evaluator_id);
       CREATE INDEX IF NOT EXISTS idx_supplemental_training_practitioner ON supplemental_training(practitioner_id);
-      CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read) WHERE is_read = FALSE;
       CREATE INDEX IF NOT EXISTS idx_supervisors_username ON supervisors(username);
       CREATE INDEX IF NOT EXISTS idx_practitioners_username ON practitioners(username);
     `);
@@ -2008,10 +2008,10 @@ app.delete('/api/training/:id', async (req, res) => {
 app.get('/api/notifications', async (req, res) => {
   const { userId } = req.query;
   try {
-    let query = 'SELECT * FROM notifications';
+    let query = 'SELECT * FROM notifications WHERE is_read = FALSE';
     const params = [];
     if (userId) {
-      query += ' WHERE user_id = $1 ORDER BY created_at DESC';
+      query += ' AND user_id = $1 ORDER BY created_at DESC';
       params.push(userId);
     } else {
       query += ' ORDER BY created_at DESC';

@@ -1729,20 +1729,22 @@ let rotationIdToEdit = null;
 
 async function refreshActivePractitionerDetail() {
   const id = state.activePractitionerDetail.practitioner.id;
-  const pracRes = await fetch(`/api/practitioners/${id}`);
-  const practitioner = await pracRes.json();
+  
+  const [pracRes, logsRes, evalsRes, trainRes, rotationsRes] = await Promise.all([
+    fetch(`/api/practitioners/${id}`),
+    fetch(`/api/logs?practitionerId=${id}`),
+    fetch(`/api/evaluations?practitionerId=${id}`),
+    fetch(`/api/training?practitionerId=${id}`),
+    fetch(`/api/practitioners/${id}/rotations`)
+  ]);
 
-  const logsRes = await fetch(`/api/logs?practitionerId=${id}`);
-  const logs = await logsRes.json();
-
-  const evalsRes = await fetch(`/api/evaluations?practitionerId=${id}`);
-  const evaluations = await evalsRes.json();
-
-  const trainRes = await fetch(`/api/training?practitionerId=${id}`);
-  const training = await trainRes.json();
-
-  const rotationsRes = await fetch(`/api/practitioners/${id}/rotations`);
-  const rotations = await rotationsRes.json();
+  const [practitioner, logs, evaluations, training, rotations] = await Promise.all([
+    pracRes.json(),
+    logsRes.json(),
+    evalsRes.json(),
+    trainRes.json(),
+    rotationsRes.json()
+  ]);
 
   state.activePractitionerDetail = { practitioner, logs, evaluations, training, rotations };
 }
