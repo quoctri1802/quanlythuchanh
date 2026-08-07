@@ -1267,9 +1267,11 @@ app.put('/api/practitioners/:id', async (req, res) => {
     }
     const result = await client.query(
       `UPDATE practitioners 
-       SET name=$1, dob=$2, gender=$3, email=$4, phone=$5, degree=$6, specialty=$7, program=$8, start_date=$9, supervisor_id=$10, status=$11, profile_status=$12, rejection_reason=$13, avatar_url=COALESCE($14, avatar_url), degree_scan_url=COALESCE($15, degree_scan_url)
+       SET name=$1, dob=$2, gender=$3, email=$4, phone=$5, degree=$6, specialty=$7, program=$8, start_date=$9, supervisor_id=$10, 
+           status=COALESCE($11, status), profile_status=COALESCE($12, profile_status), rejection_reason=COALESCE($13, rejection_reason), 
+           avatar_url=COALESCE($14, avatar_url), degree_scan_url=COALESCE($15, degree_scan_url)
        WHERE id=$16 RETURNING *`,
-      [name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, status, profile_status, rejection_reason, avatar_url, degree_scan_url, req.params.id]
+      [name, dob, gender, email, phone, degree, specialty, program, start_date, supervisor_id, status || null, profile_status || null, rejection_reason || null, avatar_url || null, degree_scan_url || null, req.params.id]
     );
     await recalculateRotationDates(client, req.params.id);
     await client.query('COMMIT');
