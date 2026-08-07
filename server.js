@@ -895,14 +895,16 @@ app.get('/api/users', async (req, res) => {
 app.get('/api/supervisors', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.*, (
-        SELECT COUNT(DISTINCT p.id)
+      WITH active_trainees_summary AS (
+        SELECT r.supervisor_id, COUNT(DISTINCT p.id)::INTEGER as active_trainees
         FROM practitioners p
         JOIN practitioner_rotations r ON p.id = r.practitioner_id
-        WHERE p.status = 'Đang thực hành'
-          AND r.supervisor_id = s.id
-      ) as active_trainees
+        WHERE p.status = 'Đang thực hành' AND r.supervisor_id IS NOT NULL
+        GROUP BY r.supervisor_id
+      )
+      SELECT s.*, COALESCE(ats.active_trainees, 0) as active_trainees
       FROM supervisors s
+      LEFT JOIN active_trainees_summary ats ON s.id = ats.supervisor_id
       ORDER BY s.name ASC
     `);
     res.json(result.rows);
@@ -1024,35 +1026,26 @@ app.delete('/api/supervisors/:id', async (req, res) => {
 app.get('/api/practitioners', async (req, res) => {
   try {
     const result = await pool.query(`
+      WITH rotation_summary AS (
+        SELECT 
+          r.practitioner_id,
+          MAX(CASE WHEN r.status = 'Đang thực hành' THEN s.name END) as supervisor_name,
+          COALESCE(array_agg(r.supervisor_id) FILTER (WHERE r.supervisor_id IS NOT NULL), '{}') as rotation_supervisor_ids,
+          COUNT(*) FILTER (WHERE r.supervisor_id IS NULL)::INTEGER as missing_supervisor_count,
+          COUNT(*) FILTER (WHERE r.status = 'Đã hoàn thành')::INTEGER as completed_rotations_count,
+          COUNT(*)::INTEGER as total_rotations_count
+        FROM practitioner_rotations r
+        LEFT JOIN supervisors s ON r.supervisor_id = s.id
+        GROUP BY r.practitioner_id
+      )
       SELECT p.*,
-             (
-               SELECT s.name
-               FROM practitioner_rotations r
-               JOIN supervisors s ON r.supervisor_id = s.id
-               WHERE r.practitioner_id = p.id AND r.status = 'Đang thực hành'
-               LIMIT 1
-             ) as supervisor_name,
-             (
-               SELECT COALESCE(ARRAY_AGG(r.supervisor_id), '{}')
-               FROM practitioner_rotations r
-               WHERE r.practitioner_id = p.id AND r.supervisor_id IS NOT NULL
-             ) as rotation_supervisor_ids,
-             (
-               SELECT COUNT(*)::INTEGER
-               FROM practitioner_rotations r
-               WHERE r.practitioner_id = p.id AND r.supervisor_id IS NULL
-             ) as missing_supervisor_count,
-             (
-               SELECT COUNT(*)::INTEGER
-               FROM practitioner_rotations r
-               WHERE r.practitioner_id = p.id AND r.status = 'Đã hoàn thành'
-             ) as completed_rotations_count,
-             (
-               SELECT COUNT(*)::INTEGER
-               FROM practitioner_rotations r
-               WHERE r.practitioner_id = p.id
-             ) as total_rotations_count
+             COALESCE(rs.supervisor_name, '') as supervisor_name,
+             COALESCE(rs.rotation_supervisor_ids, '{}') as rotation_supervisor_ids,
+             COALESCE(rs.missing_supervisor_count, 0) as missing_supervisor_count,
+             COALESCE(rs.completed_rotations_count, 0) as completed_rotations_count,
+             COALESCE(rs.total_rotations_count, 0) as total_rotations_count
       FROM practitioners p
+      LEFT JOIN rotation_summary rs ON p.id = rs.practitioner_id
       ORDER BY p.name ASC
     `);
     res.json(result.rows);
