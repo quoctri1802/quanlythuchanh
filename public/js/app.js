@@ -1592,10 +1592,11 @@ function renderTimelineTabContent() {
     }
   }
 
+  const isLocked = practitioner.is_locked;
   const managerActions = document.getElementById('timeline-actions-manager');
   const isManager = state.currentUser.role === 'Cán bộ quản lý';
   if (managerActions) {
-    managerActions.style.display = isManager ? 'flex' : 'none';
+    managerActions.style.display = (isManager && !isLocked) ? 'flex' : 'none';
   }
 
   if (!rotations || rotations.length === 0) {
@@ -1625,24 +1626,26 @@ function renderTimelineTabContent() {
     }
 
     let editButtons = '';
-    if (isManager) {
-      const isFirst = index === 0;
-      const isLast = index === rotations.length - 1;
-      editButtons = `
-        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
-          ${completeBtn}
-          ${!isFirst ? `<button class="btn btn-secondary btn-move-up" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-up"></i> Lên</button>` : ''}
-          ${!isLast ? `<button class="btn btn-secondary btn-move-down" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-down"></i> Xuống</button>` : ''}
-          <button class="btn btn-secondary btn-edit-rot" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-pen"></i> Sửa</button>
-          <button class="btn btn-secondary btn-del-rot" style="padding: 2px 6px; font-size: 11px; color: var(--danger);"><i class="fas fa-trash"></i> Xóa</button>
-        </div>
-      `;
-    } else if (completeBtn) {
-      editButtons = `
-        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-          ${completeBtn}
-        </div>
-      `;
+    if (!isLocked) {
+      if (isManager) {
+        const isFirst = index === 0;
+        const isLast = index === rotations.length - 1;
+        editButtons = `
+          <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+            ${completeBtn}
+            ${!isFirst ? `<button class="btn btn-secondary btn-move-up" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-up"></i> Lên</button>` : ''}
+            ${!isLast ? `<button class="btn btn-secondary btn-move-down" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-chevron-down"></i> Xuống</button>` : ''}
+            <button class="btn btn-secondary btn-edit-rot" style="padding: 2px 6px; font-size: 11px;"><i class="fas fa-pen"></i> Sửa</button>
+            <button class="btn btn-secondary btn-del-rot" style="padding: 2px 6px; font-size: 11px; color: var(--danger);"><i class="fas fa-trash"></i> Xóa</button>
+          </div>
+        `;
+      } else if (completeBtn) {
+        editButtons = `
+          <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+            ${completeBtn}
+          </div>
+        `;
+      }
     }
 
     const div = document.createElement('div');
