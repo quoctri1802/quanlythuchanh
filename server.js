@@ -556,40 +556,81 @@ if (!process.env.VERCEL) {
   });
 }
 
-async function recalculateRotationDates(client, practitionerId) {
+async function recalculateRotationDates(client, practitionerId, updatedRotId = null) {
   // Fetch practitioner's start_date
   const pRes = await client.query('SELECT start_date FROM practitioners WHERE id = $1', [practitionerId]);
   if (pRes.rows.length === 0) return;
-  const startDateVal = pRes.rows[0].start_date;
-  if (!startDateVal) return;
+  const pStartDateVal = pRes.rows[0].start_date;
+  if (!pStartDateVal) return;
 
   // Fetch all rotations ordered by order_index
   const rRes = await client.query(
-    'SELECT id, duration FROM practitioner_rotations WHERE practitioner_id = $1 ORDER BY order_index ASC',
+    'SELECT * FROM practitioner_rotations WHERE practitioner_id = $1 ORDER BY order_index ASC',
     [practitionerId]
   );
   
-  let currentDate = new Date(startDateVal);
+  if (rRes.rows.length === 0) return;
+
+  let updatedIndex = -1;
+  if (updatedRotId) {
+    updatedIndex = rRes.rows.findIndex(r => r.id === parseInt(updatedRotId));
+  }
+
+  let currentDate = new Date(pStartDateVal);
+
   for (let i = 0; i < rRes.rows.length; i++) {
     const rot = rRes.rows[i];
-    const sDate = new Date(currentDate);
-    const eDate = new Date(currentDate);
-    
-    // Check if duration contains 'tuần' or 'week' or 't'
-    const durationLower = rot.duration.toLowerCase();
-    if (durationLower.includes('tuần') || durationLower.includes('week') || durationLower.includes('t')) {
-      const weeks = parseInt(rot.duration);
-      eDate.setDate(eDate.getDate() + (weeks * 7));
+    let sDate;
+    let eDate;
+
+    if (updatedIndex !== -1) {
+      if (i < updatedIndex) {
+        // Keep existing dates
+        sDate = rot.start_date ? new Date(rot.start_date) : currentDate;
+        eDate = rot.end_date ? new Date(rot.end_date) : sDate;
+      } else if (i === updatedIndex) {
+        // Use the dates saved in database (which were just inserted/updated from user inputs)
+        sDate = rot.start_date ? new Date(rot.start_date) : currentDate;
+        eDate = rot.end_date ? new Date(rot.end_date) : sDate;
+      } else {
+        // For stages after updated stage: start is the end of previous stage
+        const prevRot = rRes.rows[i - 1];
+        sDate = prevRot && prevRot.end_date ? new Date(prevRot.end_date) : currentDate;
+        eDate = new Date(sDate);
+        
+        // Calculate based on duration
+        const durationLower = rot.duration.toLowerCase();
+        if (durationLower.includes('tuần') || durationLower.includes('week') || durationLower.includes('t')) {
+          const weeks = parseInt(rot.duration) || 4;
+          eDate.setDate(eDate.getDate() + (weeks * 7));
+        } else {
+          const months = parseInt(rot.duration) || 1;
+          eDate.setMonth(eDate.getMonth() + months);
+        }
+      }
     } else {
-      const months = parseInt(rot.duration);
-      eDate.setMonth(eDate.getMonth() + months);
+      // Default recalculation from start
+      sDate = new Date(currentDate);
+      eDate = new Date(currentDate);
+      
+      const durationLower = rot.duration.toLowerCase();
+      if (durationLower.includes('tuần') || durationLower.includes('week') || durationLower.includes('t')) {
+        const weeks = parseInt(rot.duration) || 4;
+        eDate.setDate(eDate.getDate() + (weeks * 7));
+      } else {
+        const months = parseInt(rot.duration) || 1;
+        eDate.setMonth(eDate.getMonth() + months);
+      }
     }
-    
+
+    // Update in database and in-memory row
     await client.query(
       'UPDATE practitioner_rotations SET start_date = $1, end_date = $2, order_index = $3 WHERE id = $4',
       [sDate, eDate, i, rot.id]
     );
     
+    rot.start_date = sDate;
+    rot.end_date = eDate;
     currentDate = eDate;
   }
 }
@@ -1423,7 +1464,7 @@ app.get('/api/practitioners/:id/rotations', async (req, res) => {
 
 // Add a rotation stage for a trainee
 app.post('/api/practitioners/:id/rotations', async (req, res) => {
-  const { name, duration, status, supervisor_id } = req.body;
+  const { name, duration, status, supervisor_id, start_date, end_date } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1431,11 +1472,11 @@ app.post('/api/practitioners/:id/rotations', async (req, res) => {
     const nextIdx = maxRes.rows[0].max_idx + 1;
 
     const result = await client.query(
-      `INSERT INTO practitioner_rotations (practitioner_id, name, duration, status, order_index, supervisor_id)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [req.params.id, name, duration, status || 'Chờ xoay khoa', nextIdx, supervisor_id || null]
+      `INSERT INTO practitioner_rotations (practitioner_id, name, duration, status, order_index, supervisor_id, start_date, end_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [req.params.id, name, duration, status || 'Chờ xoay khoa', nextIdx, supervisor_id || null, start_date || null, end_date || null]
     );
-    await recalculateRotationDates(client, req.params.id);
+    await recalculateRotationDates(client, req.params.id, result.rows[0].id);
     await client.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -1448,7 +1489,7 @@ app.post('/api/practitioners/:id/rotations', async (req, res) => {
 
 // Update a rotation stage
 app.put('/api/rotations/:id', async (req, res) => {
-  const { name, duration, status, supervisor_id } = req.body;
+  const { name, duration, status, supervisor_id, start_date, end_date } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1475,11 +1516,11 @@ app.put('/api/rotations/:id', async (req, res) => {
 
     const result = await client.query(
       `UPDATE practitioner_rotations
-       SET name=$1, duration=$2, status=$3, supervisor_id=$4
-       WHERE id=$5 RETURNING *`,
-      [name, duration, status || 'Chờ xoay khoa', supervisor_id || null, req.params.id]
+       SET name=$1, duration=$2, status=$3, supervisor_id=$4, start_date=$5, end_date=$6
+       WHERE id=$7 RETURNING *`,
+      [name, duration, status || 'Chờ xoay khoa', supervisor_id || null, start_date || null, end_date || null, req.params.id]
     );
-    await recalculateRotationDates(client, practitionerId);
+    await recalculateRotationDates(client, practitionerId, req.params.id);
     await client.query('COMMIT');
     res.json(result.rows[0]);
   } catch (err) {
