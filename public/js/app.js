@@ -1508,8 +1508,22 @@ function renderPractitionerDetail() {
 
   // Toggle buttons based on role
   const addLogBtn = document.getElementById('btn-add-log');
+  const isLocked = practitioner.is_locked;
   if (role === 'Học viên') {
     addLogBtn.style.display = 'inline-flex';
+    if (isLocked) {
+      addLogBtn.disabled = true;
+      addLogBtn.style.opacity = '0.6';
+      addLogBtn.style.cursor = 'not-allowed';
+      addLogBtn.title = 'Hồ sơ đã khóa';
+      addLogBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Đã khóa hồ sơ';
+    } else {
+      addLogBtn.disabled = false;
+      addLogBtn.style.opacity = '1';
+      addLogBtn.style.cursor = 'pointer';
+      addLogBtn.title = '';
+      addLogBtn.innerHTML = '<i class="fa-solid fa-square-plus"></i> Thêm nhật ký';
+    }
   } else {
     addLogBtn.style.display = 'none';
   }
@@ -1517,6 +1531,19 @@ function renderPractitionerDetail() {
   const addEvalBtn = document.getElementById('btn-add-evaluation');
   if (role === 'Người hướng dẫn' || role === 'Cán bộ quản lý') {
     addEvalBtn.style.display = 'inline-flex';
+    if (isLocked) {
+      addEvalBtn.disabled = true;
+      addEvalBtn.style.opacity = '0.6';
+      addEvalBtn.style.cursor = 'not-allowed';
+      addEvalBtn.title = 'Hồ sơ đã khóa';
+      addEvalBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Đã khóa hồ sơ';
+    } else {
+      addEvalBtn.disabled = false;
+      addEvalBtn.style.opacity = '1';
+      addEvalBtn.style.cursor = 'pointer';
+      addEvalBtn.title = '';
+      addEvalBtn.innerHTML = '<i class="fa-solid fa-square-plus"></i> Thêm đánh giá';
+    }
   } else {
     addEvalBtn.style.display = 'none';
   }
@@ -1948,11 +1975,14 @@ function renderLogsTabContent() {
     if (l.status === 'Đã xác nhận') badgeClass = 'badge-success';
     else if (l.status === 'Yêu cầu sửa') badgeClass = 'badge-danger';
 
+    const isLocked = state.activePractitionerDetail.practitioner.is_locked;
     let actionCell = '';
-    if (state.currentUser.role === 'Người hướng dẫn' && l.status !== 'Đã xác nhận') {
+    if (state.currentUser.role === 'Người hướng dẫn' && l.status !== 'Đã xác nhận' && !isLocked) {
       actionCell = `<button class="btn btn-secondary btn-verify-log" style="padding:4px 8px; font-size:11px;">Duyệt</button>`;
     } else if (l.status === 'Đã xác nhận') {
       actionCell = `<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>`;
+    } else if (isLocked) {
+      actionCell = `<span class="badge badge-secondary" style="font-size: 11px;"><i class="fa-solid fa-lock"></i> Đã khóa</span>`;
     }
 
     tr.innerHTML = `
@@ -2565,6 +2595,42 @@ function renderCompletionCertificateTabContent() {
   const printCertBtn = document.getElementById('btn-print-certificate');
   const printAppBtn = document.getElementById('btn-print-appform');
   const exportZipBtn = document.getElementById('btn-export-zip');
+  const lockBtn = document.getElementById('btn-lock-practitioner');
+  const isManagerOrAdmin = state.currentUser.role === 'Cán bộ quản lý' || state.currentUser.role === 'Quản trị viên';
+  
+  if (lockBtn) {
+    if (isManagerOrAdmin) {
+      lockBtn.style.display = 'inline-flex';
+      if (practitioner.is_locked) {
+        lockBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Mở khóa hồ sơ';
+        lockBtn.className = 'btn btn-success';
+      } else {
+        lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Khóa hồ sơ học viên';
+        lockBtn.className = 'btn btn-danger';
+      }
+      lockBtn.onclick = async () => {
+        const action = practitioner.is_locked ? 'unlock' : 'lock';
+        const actionText = practitioner.is_locked ? 'Mở khóa' : 'Khóa';
+        const confirmMsg = `Bạn có chắc chắn muốn ${actionText.toLowerCase()} hồ sơ của học viên ${practitioner.name}? Khi khóa, toàn bộ hoạt động cập nhật nhật ký, đánh giá sẽ bị đóng băng.`;
+        if (confirm(confirmMsg)) {
+          try {
+            const res = await fetch(`/api/practitioners/${practitioner.id}/${action}`, { method: 'POST' });
+            if (res.ok) {
+              alert(`${actionText} hồ sơ học viên thành công!`);
+              await refreshActivePractitionerDetail();
+            } else {
+              const err = await res.json();
+              alert(`Lỗi: ${err.error}`);
+            }
+          } catch (e) {
+            alert(`Lỗi kết nối: ${e.message}`);
+          }
+        }
+      };
+    } else {
+      lockBtn.style.display = 'none';
+    }
+  }
 
   const isEligibleForCert = allConditionsMet;
   const isEligibleForLicence = allConditionsMet && practitioner.national_test_result === 'Đạt';

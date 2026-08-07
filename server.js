@@ -331,6 +331,10 @@ async function initializeDatabase() {
       );
     `);
 
+    await client.query(`
+      ALTER TABLE practitioners ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
+    `);
+
     // 4. Create Practice Logs Table (Daily Logs)
     await client.query(`
       CREATE TABLE IF NOT EXISTS practice_logs (
@@ -1414,6 +1418,32 @@ app.post('/api/practitioners/:id/approve', async (req, res) => {
   }
 });
 
+// Lock trainee data
+app.post('/api/practitioners/:id/lock', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE practitioners SET is_locked = TRUE WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unlock trainee data
+app.post('/api/practitioners/:id/unlock', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE practitioners SET is_locked = FALSE WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // A.04: Assign supervisor
 app.post('/api/practitioners/:id/assign-supervisor', async (req, res) => {
   const { supervisorId } = req.body;
@@ -1494,7 +1524,8 @@ app.post('/api/practitioners/:id/national-test', async (req, res) => {
 
     const updateRes = await pool.query(
       `UPDATE practitioners 
-       SET national_test_score = $1, national_test_result = $2, national_test_date = $3
+       SET national_test_score = $1, national_test_result = $2, national_test_date = $3,
+           status = 'Đã hoàn thành'
        WHERE id = $4 RETURNING *`,
       [score, result, test_date, req.params.id]
     );
@@ -1788,6 +1819,11 @@ app.get('/api/logs', async (req, res) => {
 app.post('/api/logs', async (req, res) => {
   const { practitioner_id, log_date, department, content, procedures, quantity } = req.body;
   try {
+    const lockRes = await pool.query('SELECT is_locked FROM practitioners WHERE id = $1', [practitioner_id]);
+    if (lockRes.rows.length > 0 && lockRes.rows[0].is_locked) {
+      return res.status(400).json({ error: 'Hồ sơ học viên này đã bị khóa. Không thể thực hiện thao tác.' });
+    }
+
     const result = await pool.query(
       `INSERT INTO practice_logs (practitioner_id, log_date, department, content, procedures, quantity, status)
        VALUES ($1, $2, $3, $4, $5, $6, 'Chờ xác nhận') RETURNING *`,
@@ -1802,6 +1838,16 @@ app.post('/api/logs', async (req, res) => {
 app.put('/api/logs/:id', async (req, res) => {
   const { status, supervisor_comment } = req.body;
   try {
+    const lockRes = await pool.query(`
+      SELECT p.is_locked 
+      FROM practitioners p
+      JOIN practice_logs l ON p.id = l.practitioner_id
+      WHERE l.id = $1
+    `, [req.params.id]);
+    if (lockRes.rows.length > 0 && lockRes.rows[0].is_locked) {
+      return res.status(400).json({ error: 'Hồ sơ học viên này đã bị khóa. Không thể thực hiện thao tác.' });
+    }
+
     const result = await pool.query(
       `UPDATE practice_logs SET status=$1, supervisor_comment=$2 WHERE id=$3 RETURNING *`,
       [status, supervisor_comment, req.params.id]
@@ -1857,6 +1903,11 @@ app.post('/api/evaluations', async (req, res) => {
     by_manager
   } = req.body;
   try {
+    const lockRes = await pool.query('SELECT is_locked FROM practitioners WHERE id = $1', [practitioner_id]);
+    if (lockRes.rows.length > 0 && lockRes.rows[0].is_locked) {
+      return res.status(400).json({ error: 'Hồ sơ học viên này đã bị khóa. Không thể thực hiện thao tác.' });
+    }
+
     // 1. Enforce assigned stage supervisor check (skip if created by a manager)
     if (!by_manager) {
       if (department !== 'Đánh giá chung') {
