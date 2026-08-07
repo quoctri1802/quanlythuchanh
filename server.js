@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
@@ -80,10 +81,18 @@ Mật khẩu: ${password}
   }
 }
 
+// Enable Gzip/Brotli payload compression for faster resource delivery
+app.use(compression());
+
 // Configure JSON payload limit to support large base64 uploads (e.g. scans up to 10MB)
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static assets with 1-day browser caching to optimize load speed on repeat visits
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: true
+}));
 
 async function seedSupervisors(client) {
   const supervisorList = [
