@@ -15,6 +15,31 @@ let state = {
   }
 };
 
+let inactivityTimeout;
+
+function logout(auto = false) {
+  clearTimeout(inactivityTimeout);
+  if (auto) {
+    alert('Phiên làm việc của bạn đã hết hạn do không sử dụng trong 15 phút. Hệ thống sẽ tự động đăng xuất.');
+    sessionStorage.removeItem('currentUser');
+    window.location.reload();
+  } else {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+      sessionStorage.removeItem('currentUser');
+      window.location.reload();
+    }
+  }
+}
+
+function resetInactivityTimeout() {
+  clearTimeout(inactivityTimeout);
+  if (sessionStorage.getItem('currentUser')) {
+    inactivityTimeout = setTimeout(() => {
+      logout(true);
+    }, 15 * 60 * 1000); // 15 minutes
+  }
+}
+
 // DOM Elements
 const loginScreen = document.getElementById('view-login');
 const appMainLayout = document.getElementById('app-main-layout');
@@ -143,11 +168,14 @@ function setupGlobalEvents() {
 
   // Logout Click
   document.getElementById('btn-logout').addEventListener('click', () => {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      sessionStorage.removeItem('currentUser');
-      window.location.reload();
-    }
+    logout(false);
   });
+
+  // Register inactivity tracking listeners
+  ['mousemove', 'keypress', 'mousedown', 'touchstart', 'scroll'].forEach(event => {
+    document.addEventListener(event, resetInactivityTimeout);
+  });
+  resetInactivityTimeout();
 
   // Open Change Password Modal
   document.getElementById('btn-open-change-password').addEventListener('click', () => {
