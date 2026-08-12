@@ -60,7 +60,7 @@ async function sendWelcomeEmail(email, name, username, password) {
                   <td align="center" style="background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding: 30px 40px; color: #ffffff;">
                     <img src="https://www.quanlythuchanh.io.vn/logo.png" alt="Trung tâm Y tế Khu vực Liên Chiểu" width="100" style="display: block; margin-bottom: 15px; border-radius: 50%; background-color: #ffffff; padding: 4px;" />
                     <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Hệ Thống Quản Lý Thực Hành</h1>
-                    <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.85; letter-spacing: 0.5px;">TRUNG TÂM Y TẾ QUẬN LIÊN CHIỂU</p>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.85; letter-spacing: 0.5px;">TRUNG TÂM Y TẾ KHU VỰC LIÊN CHIỂU</p>
                   </td>
                 </tr>
 
