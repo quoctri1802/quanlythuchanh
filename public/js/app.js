@@ -119,6 +119,31 @@ const panels = {
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', async () => {
+  // Standardize form date input fields to DD/MM/YYYY using Flatpickr alt-input feature
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  Object.defineProperty(HTMLInputElement.prototype, 'value', {
+    set: function(val) {
+      descriptor.set.call(this, val);
+      if (this._flatpickr) {
+        this._flatpickr.setDate(val, false);
+      }
+    },
+    get: function() {
+      return descriptor.get.call(this);
+    }
+  });
+
+  // Apply flatpickr to all date inputs
+  document.querySelectorAll('input[type=date]').forEach(el => {
+    flatpickr(el, {
+      locale: 'vn',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      dateFormat: 'Y-m-d',
+      allowInput: true
+    });
+  });
+
   initTheme();
   setupGlobalEvents();
   
