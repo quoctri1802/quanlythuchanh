@@ -26,6 +26,15 @@ function formatDate(dateInput) {
   return `${day}/${month}/${year}`;
 }
 
+function setDateValue(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = value || '';
+  if (el._flatpickr) {
+    el._flatpickr.setDate(value || '', false);
+  }
+}
+
 let inactivityTimeout;
 
 function logout(auto = false) {
@@ -119,20 +128,6 @@ const panels = {
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', async () => {
-  // Standardize form date input fields to DD/MM/YYYY using Flatpickr alt-input feature
-  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
-  Object.defineProperty(HTMLInputElement.prototype, 'value', {
-    set: function(val) {
-      descriptor.set.call(this, val);
-      if (this._flatpickr) {
-        this._flatpickr.setDate(val, false);
-      }
-    },
-    get: function() {
-      return descriptor.get.call(this);
-    }
-  });
-
   // Apply flatpickr to all date inputs
   document.querySelectorAll('input[type=date]').forEach(el => {
     flatpickr(el, {
@@ -1147,14 +1142,14 @@ function openEditPractitionerModal(p) {
   document.getElementById('reg-username').value = p.username;
   document.getElementById('reg-username').disabled = true;
   
-  document.getElementById('reg-dob').value = new Date(p.dob).toISOString().split('T')[0];
+  setDateValue('reg-dob', new Date(p.dob).toISOString().split('T')[0]);
   document.getElementById('reg-gender').value = p.gender;
   document.getElementById('reg-email').value = p.email || '';
   document.getElementById('reg-phone').value = p.phone || '';
   document.getElementById('reg-degree').value = p.degree;
   document.getElementById('reg-specialty').value = p.specialty;
   document.getElementById('reg-program').value = p.program;
-  document.getElementById('reg-start-date').value = new Date(p.start_date).toISOString().split('T')[0];
+  setDateValue('reg-start-date', new Date(p.start_date).toISOString().split('T')[0]);
   
   const supervisorSelect = document.getElementById('reg-supervisor');
   supervisorSelect.innerHTML = '<option value="">-- Phân công người hướng dẫn chuyên môn --</option>';
@@ -1476,14 +1471,14 @@ function renderSupervisorsList() {
       
       form._editId = s.id;
       document.getElementById('sup-name').value = s.name;
-      document.getElementById('sup-dob').value = s.dob ? s.dob.split('T')[0] : '';
+      setDateValue('sup-dob', s.dob ? s.dob.split('T')[0] : '');
       document.getElementById('sup-gender').value = s.gender || 'Nam';
       document.getElementById('sup-email').value = s.email || '';
       document.getElementById('sup-phone').value = s.phone || '';
       document.getElementById('sup-specialty').value = s.specialty;
       document.getElementById('sup-department').value = s.department || '';
       document.getElementById('sup-license').value = s.license_number;
-      document.getElementById('sup-license-date').value = s.license_date ? s.license_date.split('T')[0] : '';
+      setDateValue('sup-license-date', s.license_date ? s.license_date.split('T')[0] : '');
       
       modal.classList.add('active');
     });
@@ -2060,8 +2055,8 @@ function openEditRotationStageModal(rot) {
   document.getElementById('stage-name').value = rot.name;
   document.getElementById('stage-duration').value = rot.duration;
   document.getElementById('stage-status').value = rot.status;
-  document.getElementById('stage-start').value = rot.start_date ? new Date(rot.start_date).toISOString().split('T')[0] : '';
-  document.getElementById('stage-end').value = rot.end_date ? new Date(rot.end_date).toISOString().split('T')[0] : '';
+  setDateValue('stage-start', rot.start_date ? new Date(rot.start_date).toISOString().split('T')[0] : '');
+  setDateValue('stage-end', rot.end_date ? new Date(rot.end_date).toISOString().split('T')[0] : '');
   document.getElementById('stage-order').value = rot.order_index;
 
   // Populate supervisor select, filtering by the current stage name
@@ -2122,7 +2117,7 @@ function renderLogsTabContent() {
 // Daily Log Submission B.01
 document.getElementById('btn-add-log').addEventListener('click', () => {
   document.getElementById('form-add-log').reset();
-  document.getElementById('log-date').value = new Date().toISOString().substring(0, 10);
+  setDateValue('log-date', new Date().toISOString().substring(0, 10));
   document.getElementById('modal-add-log').classList.add('active');
 });
 document.getElementById('form-add-log').addEventListener('submit', async (e) => {
@@ -2833,7 +2828,7 @@ let practitionerIdForTest = null;
 function openNationalTestModal(id) {
   practitionerIdForTest = id;
   document.getElementById('form-national-test').reset();
-  document.getElementById('test-date').value = new Date().toISOString().substring(0, 10);
+  setDateValue('test-date', new Date().toISOString().substring(0, 10));
   document.getElementById('modal-national-test').classList.add('active');
 }
 document.getElementById('form-national-test').addEventListener('submit', async (e) => {
