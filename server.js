@@ -58,7 +58,7 @@ async function sendWelcomeEmail(email, name, username, password) {
                 <!-- Header Banner -->
                 <tr>
                   <td align="center" style="background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding: 30px 40px; color: #ffffff;">
-                    <img src="https://www.quanlythuchanh.io.vn/logo.png" alt="Trung tâm Y tế quận Liên Chiểu" width="100" style="display: block; margin-bottom: 15px; border-radius: 50%; background-color: #ffffff; padding: 4px;" />
+                    <img src="https://www.quanlythuchanh.io.vn/logo.png" alt="Trung tâm Y tế Khu vực Liên Chiểu" width="100" style="display: block; margin-bottom: 15px; border-radius: 50%; background-color: #ffffff; padding: 4px;" />
                     <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Hệ Thống Quản Lý Thực Hành</h1>
                     <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.85; letter-spacing: 0.5px;">TRUNG TÂM Y TẾ QUẬN LIÊN CHIỂU</p>
                   </td>
@@ -121,9 +121,9 @@ async function sendWelcomeEmail(email, name, username, password) {
                 <!-- Footer -->
                 <tr>
                   <td style="background-color: #f8fafc; padding: 30px 40px; text-align: center; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 12px; line-height: 1.6;">
-                    <strong style="color: #475569;">TRUNG TÂM Y TẾ QUẬN LIÊN CHIỂU</strong><br>
-                    📍 Địa chỉ: 525 Tôn Đức Thắng, Hòa Khánh Nam, Liên Chiểu, Đà Nẵng<br>
-                    📧 Hỗ trợ: cntt.ttyt@lienchieu.gov.vn | 📞 Điện thoại: (0236) 3734567<br>
+                    <strong style="color: #475569;">TRUNG TÂM Y TẾ KHU VỰC LIÊN CHIỂU</strong><br>
+                    📍 Địa chỉ: 525 Tôn Đức Thắng, Hòa Khánh, Đà Nẵng<br>
+                    📧 Hỗ trợ: quoctri1802@gmail.com | 📞 Điện thoại: (0236) 3734567<br>
                     <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
                     <span style="font-style: italic; opacity: 0.8;">Đây là email tự động gửi từ hệ thống quản lý thực hành. Vui lòng không phản hồi trực tiếp email này.</span>
                   </td>
