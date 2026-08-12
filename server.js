@@ -1328,6 +1328,10 @@ app.put('/api/practitioners/:id', async (req, res) => {
       if (prevPrac.user_id) {
         const msg = `Hồ sơ đăng ký thực hành của bạn tại TTYT Liên Chiểu đã được duyệt thành công. Tài khoản đăng nhập mới của bạn là: ${finalUsername}, mật khẩu: 123456.`;
         await client.query('INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)', [prevPrac.user_id, 'Kết quả duyệt hồ sơ', msg]);
+        
+        sendWelcomeEmail(email || prevPrac.email, name || prevPrac.name, finalUsername, '123456').catch(err => {
+          console.error('[Email Welcome on Approve PUT] Failed to send email:', err.message);
+        });
       }
     } else if (profile_status === 'Từ chối' && prevPrac.profile_status !== 'Từ chối') {
       finalStatus = 'Chưa bắt đầu';
@@ -1434,6 +1438,12 @@ app.post('/api/practitioners/:id/approve', async (req, res) => {
         ? `Hồ sơ đăng ký thực hành của bạn tại TTYT Liên Chiểu đã được duyệt thành công. Tài khoản đăng nhập mới của bạn là: ${finalUsername}, mật khẩu: 123456.`
         : `Hồ sơ thực hành của bạn bị từ chối duyệt. Lý do: ${reason}`;
       await client.query('INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)', [prac.user_id, 'Kết quả duyệt hồ sơ', msg]);
+
+      if (status === 'Đã duyệt') {
+        sendWelcomeEmail(prac.email, prac.name, finalUsername, '123456').catch(err => {
+          console.error('[Email Welcome on Approve POST] Failed to send email:', err.message);
+        });
+      }
     }
 
     await client.query('COMMIT');
