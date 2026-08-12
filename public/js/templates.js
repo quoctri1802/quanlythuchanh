@@ -34,7 +34,7 @@ const Templates = {
       <div class="print-certificate">
         <div class="cert-header">
           <div class="cert-header-left">
-            <div class="hospital-name">TRUNG TÂM Y TẾ LIÊN CHIỂU</div>
+            <div class="hospital-name">TRUNG TÂM Y TẾ KHU VỰC LIÊN CHIỂU</div>
             <div class="hospital-sub">SỐ: ......./GXN-TTYT</div>
           </div>
           <div class="cert-header-right">
@@ -111,7 +111,7 @@ const Templates = {
           </div>
           <div class="cert-footer-right">
             <div class="location-date">Đà Nẵng, ${formattedToday}</div>
-            <div class="signer-title">GIÁM ĐỐC TRUNG TÂM Y TẾ</div>
+            <div class="signer-title">NGƯỜI ĐỨNG ĐẦU CƠ SỞ KHÁM, CHỮA BỆNH</div>
             <div class="signer-sub">(Ký tên, ghi rõ họ tên và đóng dấu)</div>
             <div class="signer-space"></div>
             <div class="signer-name">Bs.CKII. NGUYỄN THÀNH TÂN</div>
