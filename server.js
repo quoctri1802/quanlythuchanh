@@ -43,19 +43,98 @@ async function sendWelcomeEmail(email, name, username, password) {
     to: email,
     subject: 'Thông tin tài khoản đăng nhập Hệ thống Quản lý Thực hành Y khoa',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-        <h2 style="color: #007bff; text-align: center;">Thông Báo Cấp Tài Khoản Đăng Nhập</h2>
-        <p>Kính gửi Anh/Chị <strong>${name}</strong>,</p>
-        <p>Hồ sơ đăng ký thực hành y khoa của Anh/Chị đã được tiếp nhận thành công vào hệ thống quản lý thực hành của Bệnh viện. Dưới đây là thông tin tài khoản để truy cập hệ thống:</p>
-        <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0; border-radius: 4px;">
-          <p style="margin: 5px 0;"><strong>Đường dẫn truy cập:</strong> <a href="${process.env.SYSTEM_URL || 'https://www.quanlythuchanh.io.vn/'}" style="color: #007bff; text-decoration: none;">https://www.quanlythuchanh.io.vn/</a></p>
-          <p style="margin: 5px 0;"><strong>Tên đăng nhập:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 15px; color: #e83e8c;">${username}</code></p>
-          <p style="margin: 5px 0;"><strong>Mật khẩu mặc định:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 15px; color: #e83e8c;">${password}</code></p>
-        </div>
-        <p style="color: #dc3545;">* Lưu ý: Anh/Chị vui lòng đăng nhập hệ thống và thay đổi mật khẩu ngay trong lần đăng nhập đầu tiên để đảm bảo bảo mật thông tin.</p>
-        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #6c757d; text-align: center;">Đây là email tự động từ Hệ thống Quản lý Thực hành Y khoa. Vui lòng không trả lời email này.</p>
-      </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Thông Báo Cấp Tài Khoản Đăng Nhập</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f6f9; padding: 40px 0;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #eef2f5;">
+                
+                <!-- Header Banner -->
+                <tr>
+                  <td align="center" style="background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding: 30px 40px; color: #ffffff;">
+                    <img src="https://www.quanlythuchanh.io.vn/logo.png" alt="Trung tâm Y tế quận Liên Chiểu" width="100" style="display: block; margin-bottom: 15px; border-radius: 50%; background-color: #ffffff; padding: 4px;" />
+                    <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Hệ Thống Quản Lý Thực Hành</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.85; letter-spacing: 0.5px;">TRUNG TÂM Y TẾ QUẬN LIÊN CHIỂU</p>
+                  </td>
+                </tr>
+
+                <!-- Content Body -->
+                <tr>
+                  <td style="padding: 40px 40px 30px 40px; color: #333333; line-height: 1.6;">
+                    <p style="margin: 0 0 20px 0; font-size: 16px;">Kính gửi Anh/Chị <strong>${name}</strong>,</p>
+                    <p style="margin: 0 0 20px 0; font-size: 14px; color: #555555;">Hồ sơ đăng ký thực hành lâm sàng của Anh/Chị đã được duyệt thành công trên hệ thống của Trung tâm Y tế. Dưới đây là thông tin tài khoản cá nhân được cấp để bắt đầu quá trình thực hành:</p>
+                    
+                    <!-- Credentials Card -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+                      <tr>
+                        <td style="padding: 20px;">
+                          <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                              <td style="padding-bottom: 12px; font-size: 14px;">
+                                <strong style="color: #4a5568;">Đường dẫn hệ thống:</strong><br>
+                                <a href="${process.env.SYSTEM_URL || 'https://www.quanlythuchanh.io.vn/'}" style="color: #0284c7; text-decoration: none; font-weight: 500;">${process.env.SYSTEM_URL || 'https://www.quanlythuchanh.io.vn/'}</a>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="padding-bottom: 12px; font-size: 14px;">
+                                <strong style="color: #4a5568;">Tên đăng nhập:</strong><br>
+                                <code style="font-family: monospace; font-size: 15px; font-weight: bold; color: #0f172a; background-color: #f1f5f9; padding: 3px 8px; border-radius: 4px; border: 1px solid #cbd5e1; display: inline-block; margin-top: 4px;">${username}</code>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="font-size: 14px;">
+                                <strong style="color: #4a5568;">Mật khẩu mặc định:</strong><br>
+                                <code style="font-family: monospace; font-size: 15px; font-weight: bold; color: #0f172a; background-color: #f1f5f9; padding: 3px 8px; border-radius: 4px; border: 1px solid #cbd5e1; display: inline-block; margin-top: 4px;">${password}</code>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Call To Action Button -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                      <tr>
+                        <td align="center">
+                          <a href="${process.env.SYSTEM_URL || 'https://www.quanlythuchanh.io.vn/'}" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: 600; border-radius: 6px; display: inline-block; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">Đăng nhập hệ thống ngay</a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Warning text -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fffaf0; border-radius: 6px; border: 1px dashed #f59e0b;">
+                      <tr>
+                        <td style="padding: 15px; font-size: 13px; color: #b45309; line-height: 1.5;">
+                          💡 <strong>Lưu ý quan trọng:</strong> Anh/Chị vui lòng đăng nhập và thực hiện <strong>thay đổi mật khẩu cá nhân ngay lần đầu tiên</strong> truy cập hệ thống để bảo vệ thông tin cá nhân và nhật ký thực hành lâm sàng của mình.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background-color: #f8fafc; padding: 30px 40px; text-align: center; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 12px; line-height: 1.6;">
+                    <strong style="color: #475569;">TRUNG TÂM Y TẾ QUẬN LIÊN CHIỂU</strong><br>
+                    📍 Địa chỉ: 525 Tôn Đức Thắng, Hòa Khánh Nam, Liên Chiểu, Đà Nẵng<br>
+                    📧 Hỗ trợ: cntt.ttyt@lienchieu.gov.vn | 📞 Điện thoại: (0236) 3734567<br>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                    <span style="font-style: italic; opacity: 0.8;">Đây là email tự động gửi từ hệ thống quản lý thực hành. Vui lòng không phản hồi trực tiếp email này.</span>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
     `
   };
 
