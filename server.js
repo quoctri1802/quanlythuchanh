@@ -48,7 +48,7 @@ async function sendWelcomeEmail(email, name, username, password) {
         <p>Kính gửi Anh/Chị <strong>${name}</strong>,</p>
         <p>Hồ sơ đăng ký thực hành y khoa của Anh/Chị đã được tiếp nhận thành công vào hệ thống quản lý thực hành của Bệnh viện. Dưới đây là thông tin tài khoản để truy cập hệ thống:</p>
         <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0; border-radius: 4px;">
-          <p style="margin: 5px 0;"><strong>Đường dẫn truy cập:</strong> <a href="${process.env.SYSTEM_URL || 'http://localhost:3000'}" style="color: #007bff; text-decoration: none;">Đăng nhập hệ thống</a></p>
+          <p style="margin: 5px 0;"><strong>Đường dẫn truy cập:</strong> <a href="${process.env.SYSTEM_URL || 'https://www.quanlythuchanh.io.vn/'}" style="color: #007bff; text-decoration: none;">https://www.quanlythuchanh.io.vn/</a></p>
           <p style="margin: 5px 0;"><strong>Tên đăng nhập:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 15px; color: #e83e8c;">${username}</code></p>
           <p style="margin: 5px 0;"><strong>Mật khẩu mặc định:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 15px; color: #e83e8c;">${password}</code></p>
         </div>
