@@ -16,6 +16,16 @@ let state = {
   }
 };
 
+function formatDate(dateInput) {
+  if (!dateInput) return 'Chưa định ngày';
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return 'N/A';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 let inactivityTimeout;
 
 function logout(auto = false) {
@@ -309,8 +319,8 @@ function setupGlobalEvents() {
       csvContent += 'STT;Họ và tên;Văn bằng chuyên môn;Chức danh đăng ký;Khoa/Nội dung thực hành;Thời gian quy định;Ngày bắt đầu;Ngày kết thúc;Trạng thái luân khoa;Người hướng dẫn giai đoạn\n';
       
       rotations.forEach((r, idx) => {
-        const sDate = r.start_date ? new Date(r.start_date).toLocaleDateString('vi-VN') : 'Chưa định ngày';
-        const eDate = r.end_date ? new Date(r.end_date).toLocaleDateString('vi-VN') : 'Chưa định ngày';
+        const sDate = formatDate(r.start_date);
+        const eDate = formatDate(r.end_date);
         csvContent += `${idx + 1};${r.practitioner_name};${r.practitioner_degree};${r.practitioner_specialty};${r.name};${r.duration};${sDate};${eDate};${r.status};${r.supervisor_name || 'Chưa phân công'}\n`;
       });
       
@@ -333,8 +343,8 @@ function setupGlobalEvents() {
       csvContent += 'STT;Họ và tên;Ngày sinh;Giới tính;Số điện thoại;Email;Văn bằng chuyên môn;Chức danh đăng ký;Khung pháp lý;Ngày bắt đầu;Người hướng dẫn chính;Trạng thái thực hành;Duyệt hồ sơ;Điểm thi năng lực;Kết quả thi năng lực\n';
       
       state.practitioners.forEach((p, idx) => {
-        const dob = p.dob ? new Date(p.dob).toLocaleDateString('vi-VN') : 'N/A';
-        const sDate = p.start_date ? new Date(p.start_date).toLocaleDateString('vi-VN') : 'N/A';
+        const dob = p.dob ? formatDate(p.dob) : 'N/A';
+        const sDate = p.start_date ? formatDate(p.start_date) : 'N/A';
         const score = p.national_test_score !== null && p.national_test_score !== undefined ? p.national_test_score : 'Chưa có';
         csvContent += `${idx + 1};${p.name};${dob};${p.gender};${p.phone || ''};${p.email || ''};${p.degree};${p.specialty};${p.program === 'ND96' ? 'NĐ 96/2023/NĐ-CP' : 'TT 21/2020/TT-BYT'};${sDate};${p.supervisor_name || 'Chưa phân công'};${p.status};${p.profile_status};${score};${p.national_test_result}\n`;
       });
@@ -908,7 +918,7 @@ function renderPractitionersList() {
     }
     const endDateObj = new Date(p.start_date);
     endDateObj.setMonth(endDateObj.getMonth() + durationMonths);
-    const periodStr = `${startDateObj.toLocaleDateString('vi-VN')} - ${endDateObj.toLocaleDateString('vi-VN')}`;
+    const periodStr = `${formatDate(p.start_date)} - ${formatDate(endDateObj)}`;
 
     // Calculate rotation progress
     const totalRot = p.total_rotations_count || 0;
@@ -1361,7 +1371,7 @@ function renderSupervisorsList() {
       ? '<span class="badge badge-success">Đủ điều kiện</span>' 
       : '<span class="badge badge-danger">Chưa đủ 3 năm</span>';
     
-    const licDate = new Date(s.license_date).toLocaleDateString('vi-VN');
+    const licDate = formatDate(s.license_date);
 
     tr.innerHTML = `
       <td><strong>${s.name}</strong></td>
@@ -1408,7 +1418,7 @@ function renderSupervisorsList() {
         `;
       } else {
         assignedTrainees.forEach(p => {
-          const startDate = p.start_date ? new Date(p.start_date).toLocaleDateString('vi-VN') : 'N/A';
+          const startDate = p.start_date ? formatDate(p.start_date) : 'N/A';
           const statusBadge = p.status === 'Đang thực hành' 
             ? '<span class="badge badge-success">Đang thực hành</span>'
             : p.status === 'Đã hoàn thành'
@@ -1563,7 +1573,7 @@ function renderPractitionerDetail() {
   document.getElementById('det-name').innerText = practitioner.name;
   document.getElementById('det-degree').innerText = practitioner.degree;
   document.getElementById('det-specialty').innerText = practitioner.specialty;
-  document.getElementById('det-dob').innerText = new Date(practitioner.dob).toLocaleDateString('vi-VN');
+  document.getElementById('det-dob').innerText = formatDate(practitioner.dob);
   
   // Profile Status
   const statusBadge = document.getElementById('det-profile-status');
@@ -1579,7 +1589,7 @@ function renderPractitionerDetail() {
     rejBox.style.display = 'none';
   }
 
-  document.getElementById('det-start-date').innerText = new Date(practitioner.start_date).toLocaleDateString('vi-VN');
+  document.getElementById('det-start-date').innerText = formatDate(practitioner.start_date);
   document.getElementById('det-program').innerText = practitioner.program === 'ND96' ? 'Nghị định 96/2023/NĐ-CP (Luật 2023)' : 'Thông tư 21/2020/TT-BYT';
   document.getElementById('det-supervisor').innerText = practitioner.supervisor_name || 'Chưa phân công';
 
@@ -1688,8 +1698,8 @@ function renderTimelineTabContent() {
     const statusText = rot.status;
     const badgeClass = isCompleted ? 'badge-success' : (isActive ? 'badge-info' : 'badge-warning');
 
-    const sDate = rot.start_date ? new Date(rot.start_date).toLocaleDateString('vi-VN') : 'Chưa định ngày';
-    const eDate = rot.end_date ? new Date(rot.end_date).toLocaleDateString('vi-VN') : 'Chưa định ngày';
+    const sDate = formatDate(rot.start_date);
+    const eDate = formatDate(rot.end_date);
 
     // Check if the current user can mark this rotation as completed
     const canComplete = rot.status === 'Đang thực hành' && (
@@ -2048,7 +2058,7 @@ function renderLogsTabContent() {
 
   logs.forEach(l => {
     const tr = document.createElement('tr');
-    const dateStr = new Date(l.log_date).toLocaleDateString('vi-VN');
+    const dateStr = formatDate(l.log_date);
 
     let badgeClass = 'badge-warning';
     if (l.status === 'Đã xác nhận') badgeClass = 'badge-success';
@@ -2162,7 +2172,7 @@ function renderEvaluationsTabContent() {
 
   evaluations.forEach(e => {
     const tr = document.createElement('tr');
-    const evalDate = new Date(e.evaluation_date).toLocaleDateString('vi-VN');
+    const evalDate = formatDate(e.evaluation_date);
 
     let detailedHTML = '';
     if (e.rating_knowledge) {
@@ -2500,7 +2510,7 @@ function renderTrainingTabContent() {
 
   training.forEach(t => {
     const tr = document.createElement('tr');
-    const dateStr = new Date(t.session_date).toLocaleDateString('vi-VN');
+    const dateStr = formatDate(t.session_date);
 
     tr.innerHTML = `
       <td>${dateStr}</td>
@@ -2636,11 +2646,11 @@ function renderCompletionCertificateTabContent() {
   if (practitioner.national_test_result === 'Đạt') {
     testBadge.innerText = 'Thi Đạt';
     testBadge.className = 'badge badge-success';
-    testInfoText.innerText = `Học viên đã Đạt kỳ kiểm tra đánh giá năng lực lâm sàng ngày ${new Date(practitioner.national_test_date).toLocaleDateString('vi-VN')} với điểm số: ${practitioner.national_test_score}.`;
+    testInfoText.innerText = `Học viên đã Đạt kỳ kiểm tra đánh giá năng lực lâm sàng ngày ${formatDate(practitioner.national_test_date)} với điểm số: ${practitioner.national_test_score}.`;
   } else if (practitioner.national_test_result === 'Không đạt') {
     testBadge.innerText = 'Thi Hỏng';
     testBadge.className = 'badge badge-danger';
-    testInfoText.innerText = `Thi không đạt kỳ kiểm tra ngày ${new Date(practitioner.national_test_date).toLocaleDateString('vi-VN')} (Điểm số: ${practitioner.national_test_score}). Cần ôn luyện thi lại.`;
+    testInfoText.innerText = `Thi không đạt kỳ kiểm tra ngày ${formatDate(practitioner.national_test_date)} (Điểm số: ${practitioner.national_test_score}). Cần ôn luyện thi lại.`;
   } else {
     testBadge.innerText = 'Chưa thi';
     testBadge.className = 'badge badge-warning';
@@ -2947,7 +2957,7 @@ function renderNationalExamsList() {
       resultBadge = '<span class="badge badge-danger">KHÔNG ĐẠT</span>';
     }
 
-    const testDateText = p.national_test_date ? new Date(p.national_test_date).toLocaleDateString('vi-VN') : 'N/A';
+    const testDateText = p.national_test_date ? formatDate(p.national_test_date) : 'N/A';
 
     const isCompletedPrac = p.status === 'Đã hoàn thành';
     const btnHtml = isCompletedPrac
