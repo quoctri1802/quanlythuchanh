@@ -1738,7 +1738,6 @@ function renderTimelineTabContent() {
           <span class="badge ${badgeClass}">${statusText}</span>
         </div>
         <div class="timeline-desc" style="font-size:12px; color:var(--text-secondary); margin-top: 4px;">
-          Thời gian quy định: <strong>${rot.duration}</strong><br>
           Kế hoạch: Từ <strong>${sDate}</strong> đến <strong>${eDate}</strong><br>
           Bác sĩ hướng dẫn: <strong>${rot.supervisor_name ? rot.supervisor_name : '<span style="color: var(--danger); display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> Chưa phân công</span>'}</strong>
         </div>
