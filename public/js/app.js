@@ -9,6 +9,7 @@ let state = {
   currentView: 'dashboard',
   theme: 'light',
   notifications: [],
+  lastSyncTimestamp: Date.now(),
   config: {
     lateAlertDays: 3,
     minHours: 40
@@ -39,6 +40,52 @@ function resetInactivityTimeout() {
     }, 15 * 60 * 1000); // 15 minutes
   }
 }
+
+async function checkRealtimeUpdates() {
+  if (!state.currentUser) return;
+  try {
+    await loadNotifications();
+    const res = await fetch('/api/system/status');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.lastSystemUpdate > state.lastSyncTimestamp) {
+        console.log('Real-time data change detected! Synchronizing...');
+        state.lastSyncTimestamp = data.lastSystemUpdate;
+        await refreshData();
+        
+        if (state.currentView === 'dashboard') {
+          renderDashboard();
+        } else if (state.currentView === 'practitioners') {
+          renderPractitionersList();
+        } else if (state.currentView === 'supervisors') {
+          renderSupervisorsList();
+        } else if (state.currentView === 'detail' && state.activePractitionerDetail) {
+          const detRes = await fetch(`/api/practitioners/${state.activePractitionerDetail.practitioner.id}`);
+          const logsRes = await fetch(`/api/logs?practitionerId=${state.activePractitionerDetail.practitioner.id}`);
+          const evalsRes = await fetch(`/api/evaluations?practitionerId=${state.activePractitionerDetail.practitioner.id}`);
+          const trainRes = await fetch(`/api/training?practitionerId=${state.activePractitionerDetail.practitioner.id}`);
+          const rotRes = await fetch(`/api/practitioners/${state.activePractitionerDetail.practitioner.id}/rotations`);
+          
+          state.activePractitionerDetail = {
+            practitioner: await detRes.json(),
+            logs: await logsRes.json(),
+            evaluations: await evalsRes.json(),
+            training: await trainRes.json(),
+            rotations: await rotRes.json()
+          };
+          renderPractitionerDetail();
+        } else if (state.currentView === 'exams') {
+          renderNationalExamsList();
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Real-time sync error:', err);
+  }
+}
+
+// Start real-time background polling sync every 10 seconds
+setInterval(checkRealtimeUpdates, 10000);
 
 // DOM Elements
 const loginScreen = document.getElementById('view-login');

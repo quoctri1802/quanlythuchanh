@@ -81,8 +81,27 @@ Mật khẩu: ${password}
   }
 }
 
+let lastSystemUpdate = Date.now();
+
 // Enable Gzip/Brotli payload compression for faster resource delivery
 app.use(compression());
+
+// Intercept write operations to track real-time changes
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'DELETE'].includes(req.method) && !req.url.startsWith('/api/auth/login')) {
+    res.on('finish', () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        lastSystemUpdate = Date.now();
+      }
+    });
+  }
+  next();
+});
+
+// System Status API for Real-time client syncing
+app.get('/api/system/status', (req, res) => {
+  res.json({ lastSystemUpdate });
+});
 
 // Configure JSON payload limit to support large base64 uploads (e.g. scans up to 10MB)
 app.use(express.json({ limit: '15mb' }));
